@@ -1,0 +1,143 @@
+name: Build BLACKSITE Desktop
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "desktop/**"
+      - ".github/workflows/build-desktop.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Install build utilities
+        run: sudo apt-get update && sudo apt-get install -y unzip zip
+
+      - name: Download Godot 4.7.2 editor
+        run: |
+          curl -LfsS --retry 3 -o godot.zip "https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip"
+          unzip -q godot.zip
+          mv Godot_v4.7.2-stable_linux.x86_64 godot
+          chmod +x godot
+          ./godot --version
+
+      - name: Install Godot Windows export templates
+        run: |
+          curl -LfsS --retry 3 -o templates.tpz "https://github.com/godotengine/godot-builds/releases/download/4.7.2-stable/Godot_v4.7.2-stable_export_templates.tpz"
+          rm -rf template_unpack
+          mkdir -p template_unpack
+          unzip -q templates.tpz -d template_unpack
+          mkdir -p "$HOME/.local/share/godot/export_templates/4.7.2.stable"
+          cp -R template_unpack/templates/. "$HOME/.local/share/godot/export_templates/4.7.2.stable/"
+          test -f "$HOME/.local/share/godot/export_templates/4.7.2.stable/windows_release_x86_64.exe"
+
+      - name: Vendor CC0 game assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          RAW="https://raw.githubusercontent.com/petroulacl/fps-asset-kit/main"
+          mkdir -p desktop/assets/{textures,weapons,audio}
+          grab(){ echo "Fetching $2"; curl -LfsS --retry 3 "$1" -o "$2"; }
+
+          grab "$RAW/textures/Asphalt023S/Asphalt023S_2K-JPG_Color.jpg" desktop/assets/textures/asphalt_color.jpg
+          grab "$RAW/textures/Asphalt023S/Asphalt023S_2K-JPG_NormalGL.jpg" desktop/assets/textures/asphalt_normal.jpg
+          grab "$RAW/textures/Asphalt023S/Asphalt023S_2K-JPG_Roughness.jpg" desktop/assets/textures/asphalt_rough.jpg
+
+          grab "$RAW/textures/Concrete048/Concrete048_2K-JPG_Color.jpg" desktop/assets/textures/concrete_color.jpg
+          grab "$RAW/textures/Concrete048/Concrete048_2K-JPG_NormalGL.jpg" desktop/assets/textures/concrete_normal.jpg
+          grab "$RAW/textures/Concrete048/Concrete048_2K-JPG_Roughness.jpg" desktop/assets/textures/concrete_rough.jpg
+
+          grab "$RAW/textures/Bricks097/Bricks097_2K-JPG_Color.jpg" desktop/assets/textures/brick_color.jpg
+          grab "$RAW/textures/Bricks097/Bricks097_2K-JPG_NormalGL.jpg" desktop/assets/textures/brick_normal.jpg
+          grab "$RAW/textures/Bricks097/Bricks097_2K-JPG_Roughness.jpg" desktop/assets/textures/brick_rough.jpg
+
+          grab "$RAW/textures/Metal063/Metal063_2K-JPG_Color.jpg" desktop/assets/textures/metal_color.jpg
+          grab "$RAW/textures/Metal063/Metal063_2K-JPG_NormalGL.jpg" desktop/assets/textures/metal_normal.jpg
+          grab "$RAW/textures/Metal063/Metal063_2K-JPG_Roughness.jpg" desktop/assets/textures/metal_rough.jpg
+
+          grab "$RAW/weapons/flat_guns_west/Flat%20Guns%20West/GLB/Rifle_Assault_West.glb" desktop/assets/weapons/Rifle_Assault_West.glb
+          grab "$RAW/weapons/flat_guns_west/Flat%20Guns%20West/GLB/Pistol_Full_West.glb" desktop/assets/weapons/Pistol_Full_West.glb
+          grab "$RAW/weapons/flat_guns_west/Flat%20Guns%20West/GLB/Shotgun_Pump_West.glb" desktop/assets/weapons/Shotgun_Pump_West.glb
+
+          grab "$RAW/sfx/gunshots/game_gunshot.wav" desktop/assets/audio/rifle.wav
+          grab "$RAW/sfx/gunshots/sniper_shot.wav" desktop/assets/audio/shotgun.wav
+
+          cat > desktop/assets/THIRD_PARTY_ASSETS.txt <<'EOF'
+          BLACKSITE: Extraction runtime art/audio uses assets from:
+          https://github.com/petroulacl/fps-asset-kit
+          Upstream pack identifies these FPS assets/materials/sounds as CC0/public-domain.
+          BLACKSITE code, map layout, story, UI and game design are original.
+          EOF
+
+      - name: Import assets and validate Godot project
+        shell: bash
+        run: |
+          set -o pipefail
+          ./godot --headless --editor --path desktop --quit-after 25 2>&1 | tee godot-validate.log
+          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script|Cannot get class" godot-validate.log; then
+            echo "Godot reported script/parser errors."
+            exit 1
+          fi
+          test -d desktop/.godot
+
+      - name: Export standalone Windows build
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          ./godot --headless --path desktop --export-release "Windows Desktop" "$GITHUB_WORKSPACE/dist/BlacksiteExtraction.exe" 2>&1 | tee godot-export.log
+          test -s dist/BlacksiteExtraction.exe
+          test -s dist/BlacksiteExtraction.pck
+          cat > dist/README.txt <<'EOF'
+          BLACKSITE: Extraction — BLACK TIDE vertical slice
+
+          Launch: BlacksiteExtraction.exe
+
+          Controls
+          WASD       Move
+          Mouse      Look
+          LMB        Fire
+          RMB        Aim down sights
+          Shift      Sprint
+          Ctrl       Crouch
+          R          Reload
+          F          Interact / loot / extract
+          1 / 2 / 3  Primary / sidearm / shotgun
+          Tab        Field inventory
+          Esc        Release mouse cursor
+
+          Objective
+          Enter Harbor District 07, recover the Black Tide archive drive,
+          then return to Gate 3 alive. Loot is only retained after extraction.
+
+          No Godot installation or other game software is required.
+          EOF
+          (cd dist && zip -9 -r BLACKSITE-Extraction-Windows.zip BlacksiteExtraction.exe BlacksiteExtraction.pck README.txt)
+
+      - name: Upload playable Windows package
+        uses: actions/upload-artifact@v4
+        with:
+          name: BLACKSITE-Extraction-Windows
+          path: dist/BLACKSITE-Extraction-Windows.zip
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+
+      - name: Upload validation logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: blacksite-build-logs
+          path: |
+            godot-validate.log
+            godot-export.log
+          if-no-files-found: ignore
