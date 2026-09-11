@@ -138,6 +138,7 @@
 
   <script>
     (() => {
+      const boot = document.getElementById('boot');
       const copy = document.getElementById('boot-copy');
       const showFailure = (message) => {
         console.error('[BLACKSITE BOOT]', message);
@@ -169,13 +170,36 @@
           showFailure('3D engine loaded without the expected PlayCanvas API');
           return;
         }
+        copy.textContent = 'Renderer loaded · applying Engine 2 compatibility…';
+
+        try {
+          const proto = window.pc.Scene && window.pc.Scene.prototype;
+          const fogDesc = proto && Object.getOwnPropertyDescriptor(proto, 'fog');
+          if (proto && fogDesc && fogDesc.get && !fogDesc.set) {
+            Object.defineProperty(proto, 'fog', {
+              configurable: true,
+              enumerable: fogDesc.enumerable,
+              get: fogDesc.get,
+              set(value) { fogDesc.get.call(this).type = value; }
+            });
+            Object.defineProperties(proto, {
+              fogColor: { configurable: true, set(value) { fogDesc.get.call(this).color.copy(value); }, get() { return fogDesc.get.call(this).color; } },
+              fogStart: { configurable: true, set(value) { fogDesc.get.call(this).start = value; }, get() { return fogDesc.get.call(this).start; } },
+              fogEnd: { configurable: true, set(value) { fogDesc.get.call(this).end = value; }, get() { return fogDesc.get.call(this).end; } }
+            });
+          }
+        } catch (compatError) {
+          showFailure('Compatibility setup failed: ' + (compatError.message || compatError));
+          return;
+        }
+
         copy.textContent = 'Renderer loaded · building Harbor Yard…';
         const game = document.createElement('script');
-        game.src = 'src/game.js?v=20260911c';
+        game.src = 'src/game.js?v=20260911d';
         game.onload = () => {
           window.setTimeout(() => {
-            if (document.getElementById('boot')) {
-              showFailure('Renderer initialized but scene startup did not complete');
+            if (document.getElementById('boot') && !String(copy.textContent || '').startsWith('BOOT ERROR')) {
+              showFailure('Renderer initialized but scene startup did not complete · last stage: ' + String(copy.textContent || 'unknown'));
             }
           }, 5500);
         };
