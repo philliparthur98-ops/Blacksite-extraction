@@ -42,4 +42,48 @@ bool FBlacksiteRuntimeOwnershipTest::RunTest(const FString& Parameters)
     return true;
 }
 
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(
+    FBlacksiteRuntimeGameplayDefaultsTest,
+    "Blacksite.Runtime.GameplayDefaults",
+    EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FBlacksiteRuntimeGameplayDefaultsTest::RunTest(const FString& Parameters)
+{
+    const ABlacksiteExtractionZone* Extraction = GetDefault<ABlacksiteExtractionZone>();
+    const ABlacksiteObjective* Objective = GetDefault<ABlacksiteObjective>();
+    ABlacksiteEnemyCharacter* Enemy = GetMutableDefault<ABlacksiteEnemyCharacter>();
+
+    TestNotNull(TEXT("Extraction CDO exists"), Extraction);
+    TestNotNull(TEXT("Objective CDO exists"), Objective);
+    TestNotNull(TEXT("Enemy CDO exists"), Enemy);
+
+    if (Extraction)
+    {
+        TestEqual(TEXT("Extraction hold remains four seconds"), Extraction->GetRequiredHoldTime(), 4.0f);
+    }
+    if (Objective)
+    {
+        TestFalse(TEXT("Archive objective begins unsecured"), Objective->IsSecured());
+    }
+    if (Enemy)
+    {
+        Enemy->SetArchetype(0);
+        TestEqual(TEXT("Raider archetype id"), Enemy->GetArchetype(), 0);
+        TestEqual(TEXT("Raider health contract"), Enemy->GetCurrentHealth(), 80.0f);
+
+        Enemy->SetArchetype(1);
+        TestEqual(TEXT("Guard archetype id"), Enemy->GetArchetype(), 1);
+        TestEqual(TEXT("Guard health contract"), Enemy->GetCurrentHealth(), 110.0f);
+
+        Enemy->SetArchetype(2);
+        TestEqual(TEXT("Heavy archetype id"), Enemy->GetArchetype(), 2);
+        TestEqual(TEXT("Heavy health contract"), Enemy->GetCurrentHealth(), 165.0f);
+
+        Enemy->SetArchetype(0);
+        TestEqual(TEXT("Enemy default AI state remains patrol"), Enemy->GetAIState(), EBlacksiteAIState::Patrol);
+    }
+
+    return true;
+}
+
 #endif
