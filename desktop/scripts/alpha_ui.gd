@@ -36,12 +36,10 @@ func _build_alpha_terminal() -> void:
     alpha_root.name = "AlphaTerminal"
     alpha_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
     add_child(alpha_root)
-
     var bg := ColorRect.new()
     bg.color = Color("050b10")
     bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
     alpha_root.add_child(bg)
-
     var margin := MarginContainer.new()
     margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
     margin.add_theme_constant_override("margin_left",28)
@@ -49,11 +47,9 @@ func _build_alpha_terminal() -> void:
     margin.add_theme_constant_override("margin_top",22)
     margin.add_theme_constant_override("margin_bottom",22)
     alpha_root.add_child(margin)
-
     var root := VBoxContainer.new()
     root.add_theme_constant_override("separation",12)
     margin.add_child(root)
-
     var header := HBoxContainer.new()
     header.add_theme_constant_override("separation",14)
     root.add_child(header)
@@ -72,16 +68,15 @@ func _build_alpha_terminal() -> void:
     quit.custom_minimum_size.x = 90
     quit.pressed.connect(func(): quit_requested.emit())
     header.add_child(quit)
-
     var nav := HBoxContainer.new()
     nav.add_theme_constant_override("separation",6)
     root.add_child(nav)
-    for tab in ["DEPLOY","LOADOUT","STASH","TRADER","CONTRACTS","HIDEOUT","SETTINGS"]:
+    for tab_value in ["DEPLOY","LOADOUT","STASH","TRADER","CONTRACTS","HIDEOUT","SETTINGS"]:
+        var tab: String = str(tab_value)
         var b := _button(tab)
         b.custom_minimum_size = Vector2(112,36)
-        b.pressed.connect(func(t:=tab): _show_tab(t))
+        b.pressed.connect(_show_tab.bind(tab))
         nav.add_child(b)
-
     var content_panel := _panel(Color("08141be8"),LINE,12)
     content_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
     root.add_child(content_panel)
@@ -92,7 +87,6 @@ func _build_alpha_terminal() -> void:
     alpha_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
     alpha_content.add_theme_constant_override("separation",10)
     scroll.add_child(alpha_content)
-
     status_label = _small("READY",Color("89b6c2"))
     root.add_child(status_label)
     _show_tab("DEPLOY")
@@ -142,14 +136,12 @@ func _build_deploy_tab() -> void:
     var summary := _card(str(c.get("name","BLACK TIDE")),str(c.get("desc","")),ORANGE)
     summary.custom_minimum_size.y = 150
     alpha_content.add_child(summary)
-
     var stats := HBoxContainer.new()
     stats.add_theme_constant_override("separation",8)
     alpha_content.add_child(stats)
     stats.add_child(_card("OPERATOR","Level %d\nXP %d\n%d extractions" % [int(alpha_profile.get("level",1)),int(alpha_profile.get("xp",0)),int(alpha_profile.get("extractions",0))],CYAN))
     stats.add_child(_card("HARBOR DISTRICT 07","15 minute raid\nHigh-value industrial salvage\nMultiple hostile archetypes",Color("7da0ac")))
     stats.add_child(_card("ACTIVE LOADOUT",_loadout_summary(),GREEN))
-
     var deploy := _button("DEPLOY TO HARBOR DISTRICT",true)
     deploy.custom_minimum_size.y = 64
     deploy.pressed.connect(func(): deploy_requested.emit())
@@ -168,7 +160,8 @@ func _build_loadout_tab() -> void:
     alpha_content.add_child(_small("Equipment must exist in your stash. Dying in a raid can destroy equipped gear."))
     var stash: Array = alpha_profile.get("stash",[])
     var slots := {"primary":"PRIMARY","sidearm":"SIDEARM","armor":"ARMOR / RIG","med":"MEDICAL"}
-    for slot in slots.keys():
+    for slot_value in slots.keys():
+        var slot: String = str(slot_value)
         alpha_content.add_child(_label(str(slots[slot]),14,CYAN))
         var row := HBoxContainer.new()
         row.add_theme_constant_override("separation",6)
@@ -177,13 +170,13 @@ func _build_loadout_tab() -> void:
             var id := str(id_value)
             var d := ItemDB.get_item(id)
             var kind := str(d.get("kind",""))
-            var valid := (slot == "primary" and id in ["m4","m870"]) or (slot == "sidearm" and id == "g17") or (slot == "armor" and kind == "armor") or (slot == "med" and kind == "med")
+            var valid: bool = (slot == "primary" and id in ["m4","m870"]) or (slot == "sidearm" and id == "g17") or (slot == "armor" and kind == "armor") or (slot == "med" and kind == "med")
             if not valid:
                 continue
             var selected := str((alpha_profile.get("loadout",{}) as Dictionary).get(slot,"")) == id
             var b := _button(("✓ " if selected else "") + str(d.get("name",id)))
             b.custom_minimum_size.x = 180
-            b.pressed.connect(func(s:=str(slot),item:=id): equip_requested.emit(s,item))
+            b.pressed.connect(func(): equip_requested.emit(slot,id))
             row.add_child(b)
 
 func _build_stash_tab() -> void:
@@ -206,7 +199,7 @@ func _build_stash_tab() -> void:
         v.add_child(_small("%s  •  %.1f KG  •  $%,d" % [str(d.get("type","ITEM")),float(d.get("weight",0.0)),int(d.get("value",0))]))
         var sell := _button("SELL  $%,d" % int(float(d.get("value",0))*0.72))
         sell.disabled = id == "quest_drive"
-        sell.pressed.connect(func(item:=id): sell_requested.emit(item))
+        sell.pressed.connect(func(): sell_requested.emit(id))
         v.add_child(sell)
         grid.add_child(p)
 
@@ -218,7 +211,8 @@ func _build_trader_tab() -> void:
     grid.add_theme_constant_override("h_separation",8)
     grid.add_theme_constant_override("v_separation",8)
     alpha_content.add_child(grid)
-    for id in ["m4","g17","m870","carrier","plate","ifak","salewa"]:
+    for id_value in ["m4","g17","m870","carrier","plate","ifak","salewa"]:
+        var id: String = str(id_value)
         var d := ItemDB.get_item(id)
         var price := int(float(d.get("value",0))*1.25)
         var p := _panel(Color("0b1920"),ItemDB.rarity_color(str(d.get("rarity","common"))),8)
@@ -229,7 +223,7 @@ func _build_trader_tab() -> void:
         v.add_child(_small("%s  •  %.1f KG" % [str(d.get("type","ITEM")),float(d.get("weight",0.0))]))
         var buy := _button("BUY  $%,d" % price)
         buy.disabled = int(alpha_profile.get("cash",0)) < price
-        buy.pressed.connect(func(item:=str(id)): buy_requested.emit(item))
+        buy.pressed.connect(func(): buy_requested.emit(id))
         v.add_child(buy)
         grid.add_child(p)
 
@@ -238,7 +232,8 @@ func _build_contracts_tab() -> void:
     var level := int(alpha_profile.get("level",1))
     var completed: Array = alpha_profile.get("completed_contracts",[])
     var active := str(alpha_profile.get("active_contract","black_tide"))
-    for id in CONTRACTS.keys():
+    for id_value in CONTRACTS.keys():
+        var id: String = str(id_value)
         var c: Dictionary = CONTRACTS[id]
         var unlocked := level >= int(c.get("unlock",1))
         var done := completed.has(id)
@@ -246,7 +241,7 @@ func _build_contracts_tab() -> void:
         var v := p.get_child(0) as VBoxContainer
         var b := _button("ACTIVE" if active == id else ("COMPLETED" if done else ("ACCEPT" if unlocked else "LOCKED — LVL %d" % int(c.get("unlock",1)))))
         b.disabled = not unlocked or active == id
-        b.pressed.connect(func(contract_id:=str(id)): contract_requested.emit(contract_id))
+        b.pressed.connect(func(): contract_requested.emit(id))
         v.add_child(b)
         alpha_content.add_child(p)
 
@@ -270,7 +265,6 @@ func _build_settings_tab() -> void:
     sensitivity.value = float(settings.get("sensitivity",0.075))
     alpha_content.add_child(_label("MOUSE SENSITIVITY",12,TEXT))
     alpha_content.add_child(sensitivity)
-
     var fov := HSlider.new()
     fov.min_value = 60
     fov.max_value = 100
@@ -278,7 +272,6 @@ func _build_settings_tab() -> void:
     fov.value = float(settings.get("fov",70.0))
     alpha_content.add_child(_label("FIELD OF VIEW",12,TEXT))
     alpha_content.add_child(fov)
-
     var volume := HSlider.new()
     volume.min_value = 0
     volume.max_value = 1
@@ -286,20 +279,21 @@ func _build_settings_tab() -> void:
     volume.value = float(settings.get("master_volume",0.85))
     alpha_content.add_child(_label("MASTER VOLUME",12,TEXT))
     alpha_content.add_child(volume)
-
     var apply := _button("APPLY SETTINGS",true)
     apply.pressed.connect(func(): settings_requested.emit({"sensitivity":sensitivity.value,"fov":fov.value,"master_volume":volume.value}))
     alpha_content.add_child(apply)
-
     var res_row := HBoxContainer.new()
     res_row.add_theme_constant_override("separation",6)
     alpha_content.add_child(_label("WINDOW / DISPLAY",12,TEXT))
     alpha_content.add_child(res_row)
-    for pair in [["1920×1080",Vector2i(1920,1080)],["2560×1440",Vector2i(2560,1440)],["3440×1440",Vector2i(3440,1440)],["5120×2160",Vector2i(5120,2160)]]:
+    var resolutions: Array = [["1920×1080",Vector2i(1920,1080)],["2560×1440",Vector2i(2560,1440)],["3440×1440",Vector2i(3440,1440)],["5120×2160",Vector2i(5120,2160)]]
+    for pair_value in resolutions:
+        var pair: Array = pair_value
+        var target_size: Vector2i = pair[1]
         var b := _button(str(pair[0]))
-        b.pressed.connect(func(size:=pair[1]):
+        b.pressed.connect(func():
             DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
-            DisplayServer.window_set_size(size)
+            DisplayServer.window_set_size(target_size)
         )
         res_row.add_child(b)
     var fs := _button("TOGGLE FULLSCREEN")
