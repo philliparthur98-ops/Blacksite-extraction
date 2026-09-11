@@ -32,6 +32,11 @@ public:
     void Alert(const FVector& SourceLocation);
     bool IsHeadComponent(const UPrimitiveComponent* Component) const;
 
+    int32 GetArchetype() const { return Archetype; }
+    float GetCurrentHealth() const { return Health; }
+    EBlacksiteAIState GetAIState() const { return State; }
+    FVector GetLastSeenLocation() const { return LastSeenLocation; }
+
 protected:
     virtual void BeginPlay() override;
 
