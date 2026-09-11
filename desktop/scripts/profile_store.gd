@@ -24,8 +24,14 @@ static func _read_valid(path: String) -> Dictionary:
     var file := FileAccess.open(path,FileAccess.READ)
     if file == null:
         return {}
+    var text := file.get_as_text().strip_edges()
+    # Fast structural guard: torn/partial writes should fail quietly and fall
+    # through to the backup without asking Godot's JSON parser to emit an engine
+    # error into the runtime log.
+    if text.is_empty() or not text.begins_with("{") or not text.ends_with("}"):
+        return {}
     var parser := JSON.new()
-    if parser.parse(file.get_as_text()) != OK:
+    if parser.parse(text) != OK:
         return {}
     var parsed = parser.data
     if typeof(parsed) != TYPE_DICTIONARY:
