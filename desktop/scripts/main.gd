@@ -18,13 +18,37 @@ var start_msec: int = 0
 var med_uses: int = 4
 var quest_position: Vector3 = Vector3(-2,1,-32)
 var impact_material: StandardMaterial3D
+var smoke_raid_mode: bool = false
 
 func _ready() -> void:
     process_mode = Node.PROCESS_MODE_ALWAYS
+    smoke_raid_mode = OS.get_cmdline_user_args().has("--smoke-raid")
     profile = ProfileStore.load_profile()
     _ensure_input_map()
     _build_ui()
     _prepare_impact_material()
+    if smoke_raid_mode:
+        call_deferred("_run_raid_smoke_test")
+
+func _run_raid_smoke_test() -> void:
+    await get_tree().process_frame
+    _start_raid()
+    await get_tree().process_frame
+    await get_tree().process_frame
+    var failures: Array[String] = []
+    if raid_root == null or not is_instance_valid(raid_root): failures.append("raid_root")
+    if world == null or not is_instance_valid(world): failures.append("world")
+    if player == null or not is_instance_valid(player): failures.append("player")
+    if extract == null or not is_instance_valid(extract): failures.append("extract")
+    if enemies_alive < 5: failures.append("enemy_count=%d" % enemies_alive)
+    var pickups := get_tree().get_nodes_in_group("blacksite_loot")
+    if pickups.size() < 5: failures.append("loot_count=%d" % pickups.size())
+    if failures.is_empty():
+        print("BLACKSITE_SMOKE_RAID_OK enemies=%d loot=%d objective=%s" % [enemies_alive,pickups.size(),str(quest_position)])
+        get_tree().quit(0)
+    else:
+        push_error("BLACKSITE_SMOKE_RAID_FAILED " + ",".join(failures))
+        get_tree().quit(1)
 
 func _ensure_input_map() -> void:
     _key_action("move_forward", KEY_W)
@@ -48,6 +72,7 @@ func _key_action(action: StringName, code: int) -> void:
     if InputMap.action_get_events(action).is_empty():
         var event := InputEventKey.new()
         event.physical_keycode = code
+        InputMap.add_action(action) if not InputMap.has_action(action) else null
         InputMap.action_add_event(action,event)
 
 func _mouse_action(action: StringName, button: int) -> void:
@@ -136,6 +161,7 @@ func _spawn_loot(id: String, pos: Vector3) -> void:
     loot.position = pos
     loot.configure(id)
     loot.picked.connect(_on_loot_picked)
+    loot.add_to_group("blacksite_loot")
     raid_root.add_child(loot)
 
 func _on_loot_picked(item_id: String, source: LootPickup) -> void:
