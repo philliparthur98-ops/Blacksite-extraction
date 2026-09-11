@@ -1,0 +1,111 @@
+name: Build BLACKSITE Desktop
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'desktop/**'
+      - '.github/workflows/desktop-build.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Fetch curated CC0 game assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p desktop/assets/{weapons,textures,audio,models}
+          RAW='https://raw.githubusercontent.com/petroulacl/fps-asset-kit/main'
+          curl -fsSL --retry 3 "$RAW/weapons/flat_guns_west/Flat%20Guns%20West/GLB/Rifle_Assault_West.glb" -o desktop/assets/weapons/Rifle_Assault_West.glb
+          curl -fsSL --retry 3 "$RAW/weapons/flat_guns_west/Flat%20Guns%20West/GLB/Pistol_Full_West.glb" -o desktop/assets/weapons/Pistol_Full_West.glb
+          curl -fsSL --retry 3 "$RAW/weapons/flat_guns_west/Flat%20Guns%20West/GLB/Shotgun_Pump_West.glb" -o desktop/assets/weapons/Shotgun_Pump_West.glb
+          curl -fsSL --retry 3 "$RAW/sfx/gunshots/game_gunshot.wav" -o desktop/assets/audio/rifle.wav
+          curl -fsSL --retry 3 "$RAW/sfx/gunshots/sniper_shot.wav" -o desktop/assets/audio/shotgun.wav
+          curl -fsSL --retry 3 "$RAW/textures/Asphalt023S/Asphalt023S_2K-JPG_Color.jpg" -o desktop/assets/textures/asphalt_color.jpg
+          curl -fsSL --retry 3 "$RAW/textures/Asphalt023S/Asphalt023S_2K-JPG_NormalGL.jpg" -o desktop/assets/textures/asphalt_normal.jpg
+          curl -fsSL --retry 3 "$RAW/textures/Asphalt023S/Asphalt023S_2K-JPG_Roughness.jpg" -o desktop/assets/textures/asphalt_rough.jpg
+          curl -fsSL --retry 3 "$RAW/textures/Concrete048/Concrete048_2K-JPG_Color.jpg" -o desktop/assets/textures/concrete_color.jpg
+          curl -fsSL --retry 3 "$RAW/textures/Concrete048/Concrete048_2K-JPG_NormalGL.jpg" -o desktop/assets/textures/concrete_normal.jpg
+          curl -fsSL --retry 3 "$RAW/textures/Concrete048/Concrete048_2K-JPG_Roughness.jpg" -o desktop/assets/textures/concrete_rough.jpg
+          curl -fsSL --retry 3 "$RAW/textures/Metal063/Metal063_2K-JPG_Color.jpg" -o desktop/assets/textures/metal_color.jpg
+          curl -fsSL --retry 3 "$RAW/textures/Metal063/Metal063_2K-JPG_NormalGL.jpg" -o desktop/assets/textures/metal_normal.jpg
+          curl -fsSL --retry 3 "$RAW/textures/Metal063/Metal063_2K-JPG_Roughness.jpg" -o desktop/assets/textures/metal_rough.jpg
+          curl -fsSL --retry 2 "$RAW/textures/Bricks102/Bricks102_2K-JPG_Color.jpg" -o desktop/assets/textures/brick_color.jpg || true
+          curl -fsSL --retry 2 "$RAW/textures/Bricks102/Bricks102_2K-JPG_NormalGL.jpg" -o desktop/assets/textures/brick_normal.jpg || true
+          curl -fsSL --retry 2 "$RAW/textures/Bricks102/Bricks102_2K-JPG_Roughness.jpg" -o desktop/assets/textures/brick_rough.jpg || true
+
+      - name: Install Godot 4.7.2 and export templates
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION='4.7.2-stable'
+          TEMPLATE_DIR="$HOME/.local/share/godot/export_templates/4.7.2.stable"
+          curl -fsSL --retry 3 -o godot.zip "https://github.com/godotengine/godot-builds/releases/download/$VERSION/Godot_v${VERSION}_linux.x86_64.zip"
+          unzip -q godot.zip
+          mv "Godot_v${VERSION}_linux.x86_64" godot
+          chmod +x godot
+          curl -fsSL --retry 3 -o templates.tpz "https://github.com/godotengine/godot-builds/releases/download/$VERSION/Godot_v${VERSION}_export_templates.tpz"
+          unzip -q templates.tpz
+          mkdir -p "$TEMPLATE_DIR"
+          mv templates/* "$TEMPLATE_DIR/"
+          ./godot --version
+
+      - name: Import assets and validate project
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./godot --headless --editor --path desktop --quit-after 3
+
+      - name: Export standalone Windows x64 build
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/windows
+          ./godot --headless --path desktop --export-release "Windows Desktop" "$GITHUB_WORKSPACE/dist/windows/BLACKSITE_Extraction.exe"
+          cp desktop/README.md dist/windows/README.txt
+          cd dist/windows
+          sha256sum BLACKSITE_Extraction.exe > SHA256SUM.txt
+          zip -9 BLACKSITE_Extraction_Windows_x64.zip BLACKSITE_Extraction.exe README.txt SHA256SUM.txt
+
+      - name: Export standalone Linux x64 build
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/linux
+          ./godot --headless --path desktop --export-release "Linux" "$GITHUB_WORKSPACE/dist/linux/BLACKSITE_Extraction.x86_64"
+          chmod +x dist/linux/BLACKSITE_Extraction.x86_64
+          cp desktop/README.md dist/linux/README.txt
+          cd dist/linux
+          sha256sum BLACKSITE_Extraction.x86_64 > SHA256SUM.txt
+          tar -czf BLACKSITE_Extraction_Linux_x64.tar.gz BLACKSITE_Extraction.x86_64 README.txt SHA256SUM.txt
+
+      - name: Smoke-run Linux executable
+        shell: bash
+        run: |
+          set +e
+          timeout 8s ./dist/linux/BLACKSITE_Extraction.x86_64 --headless --quit-after 3
+          code=$?
+          if [ "$code" -ne 0 ] && [ "$code" -ne 124 ]; then
+            echo "Smoke run failed with code $code"
+            exit "$code"
+          fi
+          exit 0
+
+      - name: Upload standalone builds
+        uses: actions/upload-artifact@v4
+        with:
+          name: BLACKSITE-Extraction-Standalone-v0.2
+          path: |
+            dist/windows/BLACKSITE_Extraction_Windows_x64.zip
+            dist/linux/BLACKSITE_Extraction_Linux_x64.tar.gz
+          if-no-files-found: error
+          retention-days: 30
