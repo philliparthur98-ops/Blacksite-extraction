@@ -2,14 +2,11 @@ name: Unreal UE5.8 Build Proof
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - 'unreal/**'
-      - '.github/workflows/unreal-ue58-build.yml'
 
-# Epic does not license UE binaries on GitHub-hosted runners. This job intentionally
-# targets a Windows runner with UE 5.8 installed and UE_ROOT configured.
+# Epic does not license UE binaries on GitHub-hosted runners. This proof job is
+# deliberately explicit: run it on a Windows runner with UE 5.8 installed,
+# the label `unreal-5.8`, and UE_ROOT pointing at that installation. Keeping it
+# manual prevents commits from accumulating permanently queued fake CI runs.
 jobs:
   ue58-proof:
     runs-on: [self-hosted, Windows, X64, unreal-5.8]
