@@ -40,12 +40,13 @@ jobs:
           cp -R template_unpack/templates/. "$HOME/.local/share/godot/export_templates/4.7.2.stable/"
           test -f "$HOME/.local/share/godot/export_templates/4.7.2.stable/windows_release_x86_64.exe"
 
-      - name: Vendor v1.02B CC0 combat assets and PBR materials
+      - name: Vendor v1.03 CC0 combat environment and loot assets
         shell: bash
         run: |
           set -euo pipefail
           RAW="https://raw.githubusercontent.com/petroulacl/fps-asset-kit/main"
-          mkdir -p desktop/assets/{textures,weapons,characters,audio} /tmp/blacksite_glb
+          INDUSTRIAL="https://raw.githubusercontent.com/JaronKBragg7337/asset-pack-ue-threejs-blender-unity/main"
+          mkdir -p desktop/assets/{textures,weapons,characters,audio,environment,loot} /tmp/blacksite_glb
           grab(){ echo "Fetching $2"; curl -LfsS --retry 4 --retry-delay 2 "$1" -o "$2"; }
 
           grab "$RAW/textures/Asphalt023S/Asphalt023S_2K-JPG_Color.jpg" desktop/assets/textures/asphalt_color.jpg
@@ -61,8 +62,7 @@ jobs:
           grab "$RAW/textures/Metal063/Metal063_2K-JPG_NormalGL.jpg" desktop/assets/textures/metal_normal.jpg
           grab "$RAW/textures/Metal063/Metal063_2K-JPG_Roughness.jpg" desktop/assets/textures/metal_rough.jpg
 
-          # The 3DAssets.dev GLBs use KHR_mesh_quantization, which Godot rejects,
-          # so dequantize those assets to ordinary float attributes before import.
+          # High-detail firearms and original v1.02 character fallback.
           grab "https://cdn.3dassets.dev/assets/33096/v1/model.glb" /tmp/blacksite_glb/vxr.glb
           grab "https://cdn.3dassets.dev/assets/33458/v1/model.glb" /tmp/blacksite_glb/p9.glb
           grab "https://cdn.3dassets.dev/assets/33101/v1/model.glb" /tmp/blacksite_glb/sg12.glb
@@ -72,10 +72,29 @@ jobs:
           npx --yes @gltf-transform/cli dequantize /tmp/blacksite_glb/sg12.glb desktop/assets/weapons/SG12_Breacher.glb
           npx --yes @gltf-transform/cli dequantize /tmp/blacksite_glb/scout.glb desktop/assets/characters/GorgeholdScout.glb
 
-          # WRAD ARMS is a purpose-built, fully rigged CC0 first-person viewmodel
-          # with dedicated socket bones. Its Blender-exported GLB imports directly.
+          # Authored first-person arms.
           grab "https://raw.githubusercontent.com/wwwriks/wrad-arms/main/arms.glb" desktop/assets/characters/WRAD_Arms.glb
           test -s desktop/assets/characters/WRAD_Arms.glb
+
+          # v1.03 hostile silhouettes: distinct CC0 jointed/animated field characters.
+          grab "https://cdn.3dassets.dev/assets/32700/v1/model.glb" /tmp/blacksite_glb/masked_raider.glb
+          grab "https://cdn.3dassets.dev/assets/32701/v1/model.glb" /tmp/blacksite_glb/armoured_heavy.glb
+          grab "https://cdn.3dassets.dev/assets/32703/v1/model.glb" /tmp/blacksite_glb/field_medic.glb
+          npx --yes @gltf-transform/cli dequantize /tmp/blacksite_glb/masked_raider.glb desktop/assets/characters/MaskedRaider.glb
+          npx --yes @gltf-transform/cli dequantize /tmp/blacksite_glb/armoured_heavy.glb desktop/assets/characters/ArmouredHeavy.glb
+          npx --yes @gltf-transform/cli dequantize /tmp/blacksite_glb/field_medic.glb desktop/assets/characters/FieldMedic.glb
+
+          # v1.03 grounded physical loot: one shared CC0 survival prop scene + keycard.
+          grab "https://cdn.3dassets.dev/assets/32712/v1/model.glb" /tmp/blacksite_glb/forest_outpost.glb
+          grab "https://cdn.3dassets.dev/assets/19924/v1/model.glb" /tmp/blacksite_glb/keycard.glb
+          npx --yes @gltf-transform/cli dequantize /tmp/blacksite_glb/forest_outpost.glb desktop/assets/loot/ForestOutpost.glb
+          npx --yes @gltf-transform/cli dequantize /tmp/blacksite_glb/keycard.glb desktop/assets/loot/KeyCard.glb
+
+          # Authored industrial districts/props. These CC0 GLBs import directly.
+          grab "$INDUSTRIAL/examples/industrial_outpost/ModKit_Industrial_Outpost.glb" desktop/assets/environment/IndustrialOutpost.glb
+          for f in SM_Crate_Stack SM_Pallet SM_Barrel SM_Rubble_Pile SM_Pipe_2m SM_Sign_Wall SM_Wall_Damaged_4m SM_Stairs_4m; do
+            grab "$INDUSTRIAL/exports/GLTF/${f}.glb" "desktop/assets/environment/${f}.glb"
+          done
 
           python3 - <<'PY'
           import math, random, struct, wave
@@ -114,79 +133,81 @@ jobs:
           PY
 
           cat > desktop/assets/THIRD_PARTY_ASSETS.txt <<'EOF'
-          BLACKSITE: Extraction v1.02B asset provenance
+          BLACKSITE: Extraction v1.03 asset provenance
 
-          PBR surfaces: ambientCG CC0 via https://github.com/petroulacl/fps-asset-kit
-          VXR carbine: Piston Carbine, Night Loadout, Mega Weapon Pack, CC0 1.0
-          https://3dassets.dev/assets/mega-weapon-pack-piston-carbine-night-loadout-a4b3b18a
-          P9 duty pistol: Compact Pistol, Carry Loadout, Mega Weapon Pack, CC0 1.0
-          https://3dassets.dev/assets/mega-weapon-pack-compact-pistol-carry-loadout-cc8dacf4
-          SG-12 breacher: Magazine Shotgun, Fitted, Mega Weapon Pack, CC0 1.0
-          https://3dassets.dev/assets/mega-weapon-pack-tactical-shotgun-loadout-e1d57a86
-          Character: Gorgehold Scout, MakeHuman-based rigged character, CC0 1.0
-          https://3dassets.dev/assets/gorgehold-survivor-gallery-and-operations-gorgehold-sc-5418288a
-          First-person arms: WRAD ARMS by wriks, fully rigged FPS viewmodel arms, CC0 1.0
-          https://github.com/wwwriks/wrad-arms
+          PBR surfaces: ambientCG CC0 via petroulacl/fps-asset-kit.
+          VXR/P9/SG-12 firearm meshes: Mega Weapon Pack assets via 3dassets.dev, CC0 1.0.
+          Gorgehold Scout fallback character: MakeHuman-based asset via 3dassets.dev, CC0 1.0.
+          First-person arms: WRAD ARMS by wriks, CC0 1.0.
+          v1.03 enemies: Masked Raider, Armoured Heavy and Field Medic from FPS Survival Forest Outpost via 3dassets.dev, CC0 1.0.
+          v1.03 world loot: FPS Survival Forest Outpost scene via 3dassets.dev, CC0 1.0; Key Card asset via 3dassets.dev, CC0 1.0.
+          v1.03 industrial environment kit: JaronKBragg7337/asset-pack-ue-threejs-blender-unity, CC0 1.0.
 
-          Firearm/reload audio in this build is original procedurally generated audio.
-          BLACKSITE code, map layout, narrative, UI and game design are original.
+          SPT/Single Player Tarkov was used only as a high-level reference for extraction-game information architecture, persistence and workflow density. No SPT/Escape from Tarkov code, maps, models, UI artwork, audio or proprietary assets are included.
+          BLACKSITE code, map layout, narrative, UI design and game design remain original.
           EOF
 
       - name: Import assets and validate Godot project
         shell: bash
         run: |
           set -o pipefail
-          ./godot --headless --editor --path desktop --quit-after 40 2>&1 | tee godot-validate.log
+          ./godot --headless --editor --path desktop --quit-after 80 2>&1 | tee godot-validate.log
           if grep -E "SCRIPT ERROR|Parse Error|Failed loading resource|Failed to load script|Cannot get class|Not a WAV file|Error importing|Can't import file" godot-validate.log; then
             echo "Godot reported parser/resource errors."
             exit 1
           fi
           test -d desktop/.godot/imported
 
-      - name: Full Harbor raid runtime smoke test
+      - name: Full Harbor v1.03 runtime smoke test
         shell: bash
         run: |
           set -o pipefail
-          ./godot --headless --path desktop --quit-after 180 -- --smoke-raid 2>&1 | tee godot-runtime.log
+          ./godot --headless --path desktop --quit-after 240 -- --smoke-raid 2>&1 | tee godot-runtime.log
           if grep -E "SCRIPT ERROR|Invalid call|Invalid assignment|Attempt to call|nonexistent function|Failed loading resource|Failed to load script|BLACKSITE_SMOKE_RAID_FAILED" godot-runtime.log; then
             echo "Godot runtime smoke test reported errors."
             exit 1
           fi
           grep -q "BLACKSITE_SMOKE_RAID_OK" godot-runtime.log
+          grep -q "world_scale=PASS" godot-runtime.log
           grep -q "fp_rig=PASS" godot-runtime.log
+          grep -q "grip=PASS" godot-runtime.log
           grep -q "ammo_persistence=PASS" godot-runtime.log
+          grep -q "extract_lock=PASS" godot-runtime.log
+          grep -q "ui_v103=PASS" godot-runtime.log
 
-      - name: Export BLACKSITE v1.02B Windows build
+      - name: Export BLACKSITE v1.03 Windows build
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p dist
-          ./godot --headless --path desktop --export-release "Windows Desktop" "$GITHUB_WORKSPACE/dist/BLACKSITE_Extraction_v1.02B.exe" 2>&1 | tee godot-export.log
-          test -s dist/BLACKSITE_Extraction_v1.02B.exe
+          ./godot --headless --path desktop --export-release "Windows Desktop" "$GITHUB_WORKSPACE/dist/BLACKSITE_Extraction_v1.03.exe" 2>&1 | tee godot-export.log
+          test -s dist/BLACKSITE_Extraction_v1.03.exe
           cat > dist/README.txt <<'EOF'
-          BLACKSITE: Extraction v1.02B — BLACK TIDE
+          BLACKSITE: Extraction v1.03 — HARBOR EXPANSION
 
-          Double-click BLACKSITE_Extraction_v1.02B.exe. No engine, launcher, runtime install, or internet connection is required.
+          Double-click BLACKSITE_Extraction_v1.03.exe. No engine, launcher, runtime install, or internet connection is required.
 
           WASD Move | Mouse Look | LMB Fire | RMB ADS | Shift Sprint | Ctrl Crouch
           R Reload | F Interact/Loot/Extract | H IFAK | 1/2/3 Weapons | Tab Field Inventory
           Esc Release Cursor | Click Recapture | F11 Toggle Fullscreen
 
-          v1.02B replaces the generated primitive first-person arms with a rigged CC0 FPS viewmodel,
-          sockets the active weapon to the authored right-hand rig, preserves authored arm materials,
-          drives whole-rig idle/ADS/sprint/reload motion, and keeps raid-persistent ammunition state.
-          The ammo regression now uses the same production fire-state transition used by live gameplay.
+          v1.03 presentation overhaul:
+          - Harbor District expanded to a roughly 360 m x 360 m playable footprint with authored industrial districts and props.
+          - Weapon viewmodels now snap into the authored hand socket with weapon-specific local grip transforms.
+          - Scav/guard/raider presentation uses three distinct authored enemy character assets.
+          - World loot uses grounded 3D prop assets instead of glowing pedestals/spinning debug shapes.
+          - The terminal is rebuilt as a dense operator/gear/contracts operations workspace.
+          - Native 5K2K / 5120x2160 ultrawide support remains enabled.
 
-          Objective: recover the Black Tide archive drive inside Harbor District 07 and return alive to Gate 3.
-          Field loot is only retained after successful extraction.
+          BLACKSITE is an original game. SPT/Escape from Tarkov was used only as a high-level design reference; no proprietary Tarkov/SPT assets or code are included.
           EOF
-          (cd dist && sha256sum BLACKSITE_Extraction_v1.02B.exe > SHA256SUM.txt && zip -9 BLACKSITE_Extraction_v1.02B_Windows_x64.zip BLACKSITE_Extraction_v1.02B.exe README.txt SHA256SUM.txt)
+          (cd dist && sha256sum BLACKSITE_Extraction_v1.03.exe > SHA256SUM.txt && zip -9 BLACKSITE_Extraction_v1.03_Windows_x64.zip BLACKSITE_Extraction_v1.03.exe README.txt SHA256SUM.txt)
 
       - name: Upload playable Windows package
         uses: actions/upload-artifact@v4
         with:
-          name: BLACKSITE-Extraction-v1.02B-Windows
-          path: dist/BLACKSITE_Extraction_v1.02B_Windows_x64.zip
+          name: BLACKSITE-Extraction-v1.03-Windows
+          path: dist/BLACKSITE_Extraction_v1.03_Windows_x64.zip
           if-no-files-found: error
           compression-level: 0
           retention-days: 30
@@ -195,7 +216,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: blacksite-v102b-build-logs
+          name: blacksite-v103-build-logs
           path: |
             godot-validate.log
             godot-runtime.log
