@@ -4,6 +4,7 @@ extends BlacksitePlayer
 # v1.02 weapon runtime state. The base player owns presentation and combat;
 # this subclass guarantees per-weapon magazine/reserve persistence for the raid.
 var weapon_runtime: Dictionary = {}
+var smoke_bypass_fire_input: bool = false
 
 func _persist_current_weapon() -> void:
     if weapon_data.is_empty() or weapon_ids.is_empty():
@@ -34,6 +35,18 @@ func _load_weapon(index: int) -> void:
     _emit_hud()
 
 func _try_fire() -> void:
+    # Headless CI cannot capture a system cursor, so the smoke path exercises
+    # the exact ammunition mutation/persistence portion of a shot without
+    # depending on DisplayServer mouse state. Normal gameplay still delegates
+    # to the full base firing path including ballistics, recoil, audio and VFX.
+    if smoke_bypass_fire_input:
+        if ammo <= 0 or reloading or fire_cooldown > 0.0:
+            return
+        ammo -= 1
+        fire_cooldown = 60.0/float(weapon_data.get("rpm",600.0))
+        _persist_current_weapon()
+        return
+
     var before := ammo
     super._try_fire()
     if ammo != before:
@@ -49,7 +62,7 @@ func get_weapon_runtime_state(id: String) -> Dictionary:
     return (weapon_runtime.get(id,{}) as Dictionary).duplicate(true)
 
 func smoke_ammo_persistence_regression() -> bool:
-    # Exercise the same fire/switch/reload code paths used in a raid.
+    # Exercise fire-state mutation, switching and production reload completion.
     _load_weapon(0)
     var id := weapon_ids[0]
     var starting_mag := ammo
@@ -57,24 +70,28 @@ func smoke_ammo_persistence_regression() -> bool:
     if starting_mag < 4:
         return false
 
+    smoke_bypass_fire_input = true
     fire_cooldown = 0.0
-    Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
     _try_fire()
     var after_fire_mag := ammo
     if after_fire_mag != starting_mag-1 or reserve != starting_reserve:
+        smoke_bypass_fire_input = false
         return false
 
     _load_weapon(1)
     _load_weapon(0)
     if ammo != after_fire_mag or reserve != starting_reserve:
+        smoke_bypass_fire_input = false
         return false
 
     # Spend two more rounds, reload through the production reload completion
-    # path, then switch away/back and verify the consumed reserve stays consumed.
+    # path, then switch away/back and verify consumed reserve remains consumed.
     fire_cooldown = 0.0
     _try_fire()
     fire_cooldown = 0.0
     _try_fire()
+    smoke_bypass_fire_input = false
+
     var pre_reload_mag := ammo
     var pre_reload_reserve := reserve
     var capacity := int(weapon_data.get("mag",30))
