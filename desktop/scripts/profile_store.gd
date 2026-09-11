@@ -24,7 +24,10 @@ static func _read_valid(path: String) -> Dictionary:
     var file := FileAccess.open(path,FileAccess.READ)
     if file == null:
         return {}
-    var parsed = JSON.parse_string(file.get_as_text())
+    var parser := JSON.new()
+    if parser.parse(file.get_as_text()) != OK:
+        return {}
+    var parsed = parser.data
     if typeof(parsed) != TYPE_DICTIONARY:
         return {}
     return (parsed as Dictionary).duplicate(true)
