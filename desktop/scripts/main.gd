@@ -35,6 +35,7 @@ func _run_raid_smoke_test() -> void:
     _start_raid()
     await get_tree().process_frame
     await get_tree().process_frame
+    await get_tree().process_frame
     var failures: Array[String] = []
     if raid_root == null or not is_instance_valid(raid_root): failures.append("raid_root")
     if world == null or not is_instance_valid(world): failures.append("world")
@@ -43,28 +44,43 @@ func _run_raid_smoke_test() -> void:
     if enemies_alive < 5: failures.append("enemy_count=%d" % enemies_alive)
     var pickups := get_tree().get_nodes_in_group("blacksite_loot")
     if pickups.size() < 5: failures.append("loot_count=%d" % pickups.size())
+
+    if not ResourceLoader.exists("res://assets/weapons/VXR_Carbine.glb"): failures.append("vxr_asset")
+    if not ResourceLoader.exists("res://assets/weapons/P9_Duty.glb"): failures.append("p9_asset")
+    if not ResourceLoader.exists("res://assets/weapons/SG12_Breacher.glb"): failures.append("sg12_asset")
+    if not ResourceLoader.exists("res://assets/characters/GorgeholdScout.glb"): failures.append("character_asset")
+    if player != null and player.viewmodel == null: failures.append("player_viewmodel")
+
+    var enemy_nodes := get_tree().get_nodes_in_group("blacksite_enemy")
+    var rigged_count := 0
+    for enemy_node in enemy_nodes:
+        if bool(enemy_node.get("uses_character_asset")):
+            rigged_count += 1
+    if enemy_nodes.size() < 5: failures.append("enemy_group=%d" % enemy_nodes.size())
+    if rigged_count < 5: failures.append("rigged_enemies=%d" % rigged_count)
+
     if failures.is_empty():
-        print("BLACKSITE_SMOKE_RAID_OK enemies=%d loot=%d objective=%s" % [enemies_alive,pickups.size(),str(quest_position)])
+        print("BLACKSITE_SMOKE_RAID_OK enemies=%d rigged=%d loot=%d objective=%s viewmodel=%s" % [enemies_alive,rigged_count,pickups.size(),str(quest_position),str(player.viewmodel.name)])
         get_tree().quit(0)
     else:
         push_error("BLACKSITE_SMOKE_RAID_FAILED " + ",".join(failures))
         get_tree().quit(1)
 
 func _ensure_input_map() -> void:
-    _key_action("move_forward", KEY_W)
-    _key_action("move_back", KEY_S)
-    _key_action("move_left", KEY_A)
-    _key_action("move_right", KEY_D)
-    _key_action("sprint", KEY_SHIFT)
-    _key_action("crouch", KEY_CTRL)
-    _key_action("reload", KEY_R)
-    _key_action("interact", KEY_F)
-    _key_action("inventory", KEY_TAB)
-    _key_action("weapon_1", KEY_1)
-    _key_action("weapon_2", KEY_2)
-    _key_action("weapon_3", KEY_3)
-    _mouse_action("fire", MOUSE_BUTTON_LEFT)
-    _mouse_action("aim", MOUSE_BUTTON_RIGHT)
+    _key_action("move_forward",KEY_W)
+    _key_action("move_back",KEY_S)
+    _key_action("move_left",KEY_A)
+    _key_action("move_right",KEY_D)
+    _key_action("sprint",KEY_SHIFT)
+    _key_action("crouch",KEY_CTRL)
+    _key_action("reload",KEY_R)
+    _key_action("interact",KEY_F)
+    _key_action("inventory",KEY_TAB)
+    _key_action("weapon_1",KEY_1)
+    _key_action("weapon_2",KEY_2)
+    _key_action("weapon_3",KEY_3)
+    _mouse_action("fire",MOUSE_BUTTON_LEFT)
+    _mouse_action("aim",MOUSE_BUTTON_RIGHT)
 
 func _key_action(action: StringName, code: int) -> void:
     if not InputMap.has_action(action):
@@ -72,7 +88,6 @@ func _key_action(action: StringName, code: int) -> void:
     if InputMap.action_get_events(action).is_empty():
         var event := InputEventKey.new()
         event.physical_keycode = code
-        InputMap.add_action(action) if not InputMap.has_action(action) else null
         InputMap.action_add_event(action,event)
 
 func _mouse_action(action: StringName, button: int) -> void:
@@ -185,7 +200,7 @@ func _on_enemy_killed(enemy: BlacksiteEnemy, archetype: String) -> void:
     var chance := 0.78 if archetype == "raider" else 0.48
     if randf() < chance:
         var table: Array = ItemDB.LOOT_TABLE
-        var id := str(table[randi() % table.size()])
+        var id := str(table[randi()%table.size()])
         if is_instance_valid(enemy):
             _spawn_loot(id,enemy.global_position+Vector3(0,0.25,0))
     ui.toast("HOSTILE DOWN // %d REMAINING" % enemies_alive,Color("d9e7ea"))
@@ -204,13 +219,12 @@ func spawn_impact(pos: Vector3, normal: Vector3) -> void:
     quad.size = Vector2(0.08,0.08)
     decal.mesh = quad
     decal.material_override = impact_material
-    decal.global_position = pos + normal * 0.006
+    decal.global_position = pos+normal*0.006
     var up := Vector3.UP if absf(normal.dot(Vector3.UP)) < 0.97 else Vector3.RIGHT
     decal.look_at(pos-normal,up)
     raid_root.add_child(decal)
     get_tree().create_timer(18.0).timeout.connect(func() -> void:
-        if is_instance_valid(decal):
-            decal.queue_free()
+        if is_instance_valid(decal): decal.queue_free()
     )
 
 func use_med() -> void:
@@ -269,7 +283,7 @@ func _end_raid(extracted: bool) -> void:
     if player and is_instance_valid(player):
         player.set_physics_process(false)
         player.set_process(false)
-        player.set_process_unhandled_input(false)
+        player.set_process_input(false)
     Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
     profile["raid_count"] = int(profile.get("raid_count",0))+1
