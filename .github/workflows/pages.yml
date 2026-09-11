@@ -19,6 +19,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+      - name: Validate gameplay JavaScript
+        run: node --check src/game.js
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload site
