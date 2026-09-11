@@ -24,8 +24,6 @@ func _build_ui() -> void:
     aui.settings_requested.connect(_alpha_settings)
     ui.set_profile(profile)
 
-# Godot's percent formatter does not support Python-style comma grouping. Override
-# the inherited sell handler so every live v1.03 money message is runtime-safe.
 func _alpha_sell(id: String) -> void:
     var stash: Array = profile.get("stash",[])
     var idx := stash.find(id)
@@ -49,7 +47,8 @@ func _alpha_sell(id: String) -> void:
     _save_refresh("SOLD %s  +$%s" % [str(ItemDB.get_item(id).get("name",id)).to_upper(),value_text])
 
 func _spawn_alpha_bonus_loot() -> void:
-    if raid_root == null: return
+    if raid_root == null:
+        return
     alpha_bonus_loot_spawned = 0
     var candidates := [
         Vector3(-121,0.42,116),Vector3(119,0.42,108),Vector3(-72,0.42,61),
@@ -64,7 +63,8 @@ func _spawn_alpha_bonus_loot() -> void:
         alpha_bonus_loot_spawned += 1
 
 func _spawn_secondary_extract() -> void:
-    if raid_root == null: return
+    if raid_root == null:
+        return
     secondary_extract = ExtractionTerminal.new()
     secondary_extract.position = Vector3(148,0,-157)
     secondary_extract.configure(self)
@@ -72,13 +72,30 @@ func _spawn_secondary_extract() -> void:
     secondary_extract.enabled_for_extract = contract_secured
     raid_root.add_child(secondary_extract)
 
+func _smoke_cleanup() -> void:
+    raid_active = false
+    if raid_root != null and is_instance_valid(raid_root):
+        raid_root.queue_free()
+    raid_root = null
+    player = null
+    world = null
+    extract = null
+    secondary_extract = null
+    if ui != null and is_instance_valid(ui):
+        ui.queue_free()
+    LootPickupV103.release_cached_assets()
+    # Give Godot several deferred-delete cycles before terminating the dummy renderer.
+    await get_tree().process_frame
+    await get_tree().process_frame
+    await get_tree().process_frame
+    await get_tree().process_frame
+
 func _run_raid_smoke_test() -> void:
     await get_tree().process_frame
     _ensure_alpha_profile()
     var saved_profile := profile.duplicate(true)
     var failures: Array[String] = []
 
-    # Deterministic meta loop fixture; never depends on a user's live profile state.
     profile = ProfileStore.default_profile()
     _ensure_alpha_profile()
     profile["cash"] = 50000
@@ -106,7 +123,8 @@ func _run_raid_smoke_test() -> void:
     if alpha_bonus_loot_spawned < 8: failures.append("bonus_loot")
 
     var world_ok := world is WorldBuilderV103 and (world as WorldBuilderV103).smoke_world_scale_ok()
-    if not world_ok: failures.append("world_scale_or_authored_districts")
+    if not world_ok:
+        failures.append("world_scale_or_authored_districts")
 
     var fp_ok := player.has_method("has_authored_first_person_rig") and bool(player.call("has_authored_first_person_rig"))
     var grip_ok := player.has_method("smoke_grip_alignment_ok") and bool(player.call("smoke_grip_alignment_ok"))
@@ -141,10 +159,14 @@ func _run_raid_smoke_test() -> void:
     var ui_ok := ui is BlacksiteAlphaUIV103 and (ui as BlacksiteAlphaUIV103).smoke_workspace_ok()
     if not ui_ok: failures.append("ui_workspace")
 
+    var smoke_line := "BLACKSITE_SMOKE_RAID_OK enemies=%d authored_enemies=%d enemy_variants=%d loot=%d authored_loot=%d world_extent=%.0fm world_scale=PASS fp_rig=PASS grip=PASS ammo_persistence=PASS extract_lock=PASS ui_v103=PASS" % [enemies_alive,authored_enemies,enemy_assets.size(),pickups.size(),authored_loot,(world as WorldBuilderV103).map_extent_m]
     profile = saved_profile
+
     if failures.is_empty():
-        print("BLACKSITE_SMOKE_RAID_OK enemies=%d authored_enemies=%d enemy_variants=%d loot=%d authored_loot=%d world_extent=%.0fm world_scale=PASS fp_rig=PASS grip=PASS ammo_persistence=PASS extract_lock=PASS ui_v103=PASS" % [enemies_alive,authored_enemies,enemy_assets.size(),pickups.size(),authored_loot,(world as WorldBuilderV103).map_extent_m])
+        await _smoke_cleanup()
+        print(smoke_line)
         get_tree().quit(0)
     else:
         push_error("BLACKSITE_SMOKE_RAID_FAILED " + ",".join(failures))
+        await _smoke_cleanup()
         get_tree().quit(1)
