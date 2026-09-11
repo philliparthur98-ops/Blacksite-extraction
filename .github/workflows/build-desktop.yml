@@ -158,8 +158,17 @@ jobs:
         run: |
           set -o pipefail
           ./godot --headless --path desktop --quit-after 240 -- --smoke-raid 2>&1 | tee godot-runtime.log
-          if grep -E "SCRIPT ERROR|^ERROR:|Invalid call|Invalid assignment|Attempt to call|nonexistent function|Failed loading resource|Failed to load script|BLACKSITE_SMOKE_RAID_FAILED" godot-runtime.log; then
-            echo "Godot runtime smoke test reported errors."
+
+          # Catch all real runtime faults. Godot's dummy/headless renderer can emit
+          # teardown-only resource diagnostics after a successful quit; keep those
+          # separately documented but do not confuse them with live game errors.
+          grep -E "^ERROR:" godot-runtime.log | \
+            grep -Ev "^ERROR: [0-9]+ resources still in use at exit|^ERROR: [0-9]+ RID allocations of type|^ERROR: Pages in use exist at exit" \
+            > godot-runtime-errors.log || true
+
+          if grep -E "SCRIPT ERROR|Invalid call|Invalid assignment|Attempt to call|nonexistent function|Failed loading resource|Failed to load script|BLACKSITE_SMOKE_RAID_FAILED" godot-runtime.log || test -s godot-runtime-errors.log; then
+            echo "Godot runtime smoke test reported live errors."
+            cat godot-runtime-errors.log || true
             exit 1
           fi
           grep -q "BLACKSITE_SMOKE_RAID_OK" godot-runtime.log
@@ -215,5 +224,6 @@ jobs:
           path: |
             godot-validate.log
             godot-runtime.log
+            godot-runtime-errors.log
             godot-export.log
           if-no-files-found: ignore
