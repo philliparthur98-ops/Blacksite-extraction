@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+  <meta name="theme-color" content="#071018" />
+  <title>BLACKSITE: Extraction</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://code.playcanvas.com/playcanvas-stable.min.js"></script>
+</head>
+<body>
+  <div id="app-shell">
+    <canvas id="application" aria-label="Blacksite Extraction 3D game"></canvas>
+
+    <section id="menu" class="screen screen-on">
+      <div class="menu-bg"></div>
+      <div class="topbar">
+        <div>
+          <div class="kicker">BLACKSITE CONTRACTOR NETWORK</div>
+          <h1>BLACKSITE <span>EXTRACTION</span></h1>
+        </div>
+        <div class="wallet">
+          <span>₽ 284,500</span>
+          <span>$ 14,820</span>
+          <span>€ 3,240</span>
+        </div>
+      </div>
+
+      <div class="menu-grid">
+        <aside class="operator-panel glass">
+          <div class="operator-portrait">
+            <div class="portrait-silhouette"></div>
+            <div class="portrait-overlay">
+              <span class="status-dot"></span>
+              <strong>RAVEN-6</strong>
+              <small>PMC / LVL 07</small>
+            </div>
+          </div>
+          <div class="readiness">
+            <div><span>HEALTH</span><b>100</b></div>
+            <div><span>ARMOR</span><b>60</b></div>
+            <div><span>WEIGHT</span><b>18.4kg</b></div>
+          </div>
+        </aside>
+
+        <main class="deployment glass">
+          <div class="section-label">SELECT LOCATION</div>
+          <div class="map-card selected">
+            <div class="map-art harbor-art">
+              <div class="sun"></div>
+              <div class="crane crane-a"></div>
+              <div class="crane crane-b"></div>
+              <div class="container c1"></div><div class="container c2"></div><div class="container c3"></div>
+            </div>
+            <div class="map-meta">
+              <div>
+                <h2>HARBOR YARD</h2>
+                <p>Containers, warehouses, loading lanes, extraction gate.</p>
+              </div>
+              <div class="tags"><span>DAY</span><span>MEDIUM</span><span>12–18 MIN</span></div>
+            </div>
+          </div>
+
+          <div class="section-label">RAID LOADOUT</div>
+          <div id="loadout-grid" class="loadout-grid">
+            <button class="loadout-slot active" data-slot="primary"><span class="slot-icon weapon-icon rifle"></span><b>PRIMARY</b><small>M4-style rifle</small></button>
+            <button class="loadout-slot" data-slot="sidearm"><span class="slot-icon weapon-icon pistol"></span><b>SIDEARM</b><small>Service pistol</small></button>
+            <button class="loadout-slot"><span class="slot-icon vest-icon"></span><b>ARMOR</b><small>Plate carrier</small></button>
+            <button class="loadout-slot"><span class="slot-icon rig-icon"></span><b>RIG</b><small>6 magazines</small></button>
+            <button class="loadout-slot"><span class="slot-icon bag-icon"></span><b>PACK</b><small>24 slots</small></button>
+            <button class="loadout-slot"><span class="slot-icon med-icon"></span><b>MEDICAL</b><small>IFAK</small></button>
+          </div>
+
+          <button id="deploy-btn" class="deploy-btn" type="button">
+            <span>DEPLOY TO HARBOR</span><small>Gear at risk · extraction required</small>
+          </button>
+        </main>
+
+        <aside class="stash glass">
+          <div class="stash-head"><div><div class="section-label">STASH</div><h3>READY GEAR</h3></div><span>18 / 60</span></div>
+          <div class="stash-grid">
+            <button class="stash-item item-rifle" data-name="Rifle"><span class="item-thumb rifle-thumb"></span><small>ASSAULT RIFLE</small></button>
+            <button class="stash-item item-pistol" data-name="Pistol"><span class="item-thumb pistol-thumb"></span><small>PISTOL</small></button>
+            <button class="stash-item item-armor"><span class="item-thumb armor-thumb"></span><small>PLATE CARRIER</small></button>
+            <button class="stash-item item-ammo"><span class="item-thumb ammo-thumb"></span><small>5.56 AMMO</small></button>
+            <button class="stash-item item-med"><span class="item-thumb med-thumb"></span><small>IFAK</small></button>
+            <button class="stash-item item-gpu"><span class="item-thumb gpu-thumb"></span><small>GPU</small></button>
+          </div>
+          <div class="stash-note">Tap gear to inspect. Raid loss applies only after insertion.</div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="brief" class="screen modal-screen">
+      <div class="brief-card glass">
+        <div class="section-label">DEPLOYMENT BRIEF</div>
+        <h2>HARBOR YARD</h2>
+        <p>Move through the container lanes, eliminate hostiles, recover the encrypted drive, then reach Gate 3.</p>
+        <div class="brief-stats"><span>INSERTION SHIELD <b>6s</b></span><span>HOSTILES <b>8</b></span><span>OBJECTIVE <b>1</b></span></div>
+        <button id="begin-btn" type="button" class="deploy-btn">BEGIN INSERTION</button>
+      </div>
+    </section>
+
+    <section id="hud" class="hud hidden">
+      <div class="hud-top-left glass"><b id="raid-timer">15:00</b><small id="objective">OBJECTIVE · Recover encrypted drive</small></div>
+      <div class="hud-top-right glass"><small>M4-STYLE 5.56</small><b><span id="ammo">30</span><i>/</i><span id="reserve">90</span></b></div>
+      <div class="vitals glass"><div><span>HP</span><b id="hp">100</b></div><div><span>ARMOR</span><b id="armor">60</b></div><div><span>STAM</span><b id="stamina">100</b></div></div>
+      <div id="shield" class="shield-pill">INSERTION SHIELD · 6.0</div>
+      <div id="crosshair" class="crosshair"><span></span><span></span><span></span><span></span></div>
+      <div id="damage-flash"></div>
+      <div id="hit-marker" class="hit-marker">×</div>
+      <div id="toast" class="toast"></div>
+    </section>
+
+    <section id="mobile-controls" class="mobile-controls hidden" aria-label="Mobile controls">
+      <div id="move-pad" class="move-pad"><div id="move-knob" class="move-knob"></div></div>
+      <div id="look-zone" class="look-zone"></div>
+      <button id="fire-btn" type="button" class="fire-btn">FIRE</button>
+      <button id="ads-btn" type="button" class="round-btn ads-btn">ADS</button>
+      <button id="reload-btn" type="button" class="round-btn reload-btn">RLD</button>
+      <button id="use-btn" type="button" class="round-btn use-btn">USE</button>
+    </section>
+
+    <section id="result" class="screen modal-screen">
+      <div class="brief-card glass">
+        <div class="section-label">RAID REPORT</div>
+        <h2 id="result-title">EXTRACTED</h2>
+        <p id="result-copy"></p>
+        <button id="return-btn" type="button" class="deploy-btn">RETURN TO TERMINAL</button>
+      </div>
+    </section>
+
+    <div id="boot" class="boot">
+      <div class="boot-mark">BLACKSITE</div>
+      <div class="boot-bar"><span></span></div>
+      <small id="boot-copy">Preparing renderer…</small>
+    </div>
+  </div>
+
+  <script src="src/game.js"></script>
+</body>
+</html>
