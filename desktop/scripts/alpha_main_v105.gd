@@ -3,6 +3,11 @@ extends "res://scripts/alpha_main_v104.gd"
 func _create_enemy() -> BlacksiteEnemy:
     return BlacksiteEnemyV104.new()
 
+func _on_enemy_killed(enemy: BlacksiteEnemy, archetype: String) -> void:
+    if enemy != null and is_instance_valid(enemy):
+        get_tree().call_group("blacksite_enemy","on_ally_down",enemy.global_position)
+    super._on_enemy_killed(enemy,archetype)
+
 func _body_total(p: BlacksitePlayer) -> float:
     var total := 0.0
     for value in p.body_health.values(): total += float(value)
