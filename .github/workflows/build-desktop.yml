@@ -62,7 +62,6 @@ jobs:
           grab "$RAW/textures/Metal063/Metal063_2K-JPG_NormalGL.jpg" desktop/assets/textures/metal_normal.jpg
           grab "$RAW/textures/Metal063/Metal063_2K-JPG_Roughness.jpg" desktop/assets/textures/metal_rough.jpg
 
-          # High-detail firearms and original v1.02 character fallback.
           grab "https://cdn.3dassets.dev/assets/33096/v1/model.glb" /tmp/blacksite_glb/vxr.glb
           grab "https://cdn.3dassets.dev/assets/33458/v1/model.glb" /tmp/blacksite_glb/p9.glb
           grab "https://cdn.3dassets.dev/assets/33101/v1/model.glb" /tmp/blacksite_glb/sg12.glb
@@ -72,11 +71,9 @@ jobs:
           npx --yes @gltf-transform/cli dequantize /tmp/blacksite_glb/sg12.glb desktop/assets/weapons/SG12_Breacher.glb
           npx --yes @gltf-transform/cli dequantize /tmp/blacksite_glb/scout.glb desktop/assets/characters/GorgeholdScout.glb
 
-          # Authored first-person arms.
           grab "https://raw.githubusercontent.com/wwwriks/wrad-arms/main/arms.glb" desktop/assets/characters/WRAD_Arms.glb
           test -s desktop/assets/characters/WRAD_Arms.glb
 
-          # v1.03 hostile silhouettes: distinct CC0 jointed/animated field characters.
           grab "https://cdn.3dassets.dev/assets/32700/v1/model.glb" /tmp/blacksite_glb/masked_raider.glb
           grab "https://cdn.3dassets.dev/assets/32701/v1/model.glb" /tmp/blacksite_glb/armoured_heavy.glb
           grab "https://cdn.3dassets.dev/assets/32703/v1/model.glb" /tmp/blacksite_glb/field_medic.glb
@@ -84,13 +81,11 @@ jobs:
           npx --yes @gltf-transform/cli dequantize /tmp/blacksite_glb/armoured_heavy.glb desktop/assets/characters/ArmouredHeavy.glb
           npx --yes @gltf-transform/cli dequantize /tmp/blacksite_glb/field_medic.glb desktop/assets/characters/FieldMedic.glb
 
-          # v1.03 grounded physical loot: one shared CC0 survival prop scene + keycard.
           grab "https://cdn.3dassets.dev/assets/32712/v1/model.glb" /tmp/blacksite_glb/forest_outpost.glb
           grab "https://cdn.3dassets.dev/assets/19924/v1/model.glb" /tmp/blacksite_glb/keycard.glb
           npx --yes @gltf-transform/cli dequantize /tmp/blacksite_glb/forest_outpost.glb desktop/assets/loot/ForestOutpost.glb
           npx --yes @gltf-transform/cli dequantize /tmp/blacksite_glb/keycard.glb desktop/assets/loot/KeyCard.glb
 
-          # Authored industrial districts/props. These CC0 GLBs import directly.
           grab "$INDUSTRIAL/examples/industrial_outpost/ModKit_Industrial_Outpost.glb" desktop/assets/environment/IndustrialOutpost.glb
           for f in SM_Crate_Stack SM_Pallet SM_Barrel SM_Rubble_Pile SM_Pipe_2m SM_Sign_Wall SM_Wall_Damaged_4m SM_Stairs_4m; do
             grab "$INDUSTRIAL/exports/GLTF/${f}.glb" "desktop/assets/environment/${f}.glb"
@@ -163,7 +158,7 @@ jobs:
         run: |
           set -o pipefail
           ./godot --headless --path desktop --quit-after 240 -- --smoke-raid 2>&1 | tee godot-runtime.log
-          if grep -E "SCRIPT ERROR|Invalid call|Invalid assignment|Attempt to call|nonexistent function|Failed loading resource|Failed to load script|BLACKSITE_SMOKE_RAID_FAILED" godot-runtime.log; then
+          if grep -E "SCRIPT ERROR|^ERROR:|Invalid call|Invalid assignment|Attempt to call|nonexistent function|Failed loading resource|Failed to load script|BLACKSITE_SMOKE_RAID_FAILED" godot-runtime.log; then
             echo "Godot runtime smoke test reported errors."
             exit 1
           fi
