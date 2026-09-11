@@ -57,6 +57,8 @@ for name in required_files:
 audio = text(SRC / "BlacksiteAudio.cpp")
 player = text(SRC / "BlacksitePlayerCharacter.cpp")
 enemy = text(SRC / "BlacksiteEnemyCharacter.cpp")
+enemy_h = text(SRC / "BlacksiteEnemyCharacter.h")
+objective_h = text(SRC / "BlacksiteObjective.h")
 extraction_h = text(SRC / "BlacksiteExtractionZone.h")
 world = text(SRC / "BlacksiteGameMode.cpp")
 automation = text(SRC / "BlacksiteAutomationTests.cpp")
@@ -75,6 +77,12 @@ require("BuildHarbor();" in world, "harbor_build_missing")
 require("SpawnCombatants();" in world, "enemy_spawn_missing")
 require("SetFogDensity" in world and "APostProcessVolume" in world, "visual_atmosphere_missing")
 
+# Automation-visible state must come from the production classes rather than
+# duplicated constants in a Python-only test harness.
+require("GetAIState() const" in enemy_h and "GetCurrentHealth() const" in enemy_h,
+        "enemy_runtime_state_not_testable")
+require("IsSecured() const" in objective_h, "objective_runtime_state_not_testable")
+
 # The source-sanity job is not compile proof. Require a separate UE-native gate whose
 # commands can only succeed on a machine with a licensed UE 5.8 installation.
 require("runs-on: [self-hosted, Windows, X64, unreal-5.8]" in build_proof, "ue58_runner_gate_missing")
@@ -86,17 +94,19 @@ require("Packaged executable launch smoke" in build_proof, "packaged_launch_gate
 require("IMPLEMENT_SIMPLE_AUTOMATION_TEST" in automation, "runtime_automation_tests_missing")
 require("Blacksite.Runtime.ClassContract" in automation, "runtime_class_contract_test_missing")
 require("Blacksite.Runtime.ModuleOwnership" in automation, "runtime_module_ownership_test_missing")
+require("Blacksite.Runtime.GameplayDefaults" in automation, "runtime_gameplay_defaults_test_missing")
+require("Extraction hold remains four seconds" in automation, "runtime_extraction_contract_test_missing")
+require("Archive objective begins unsecured" in automation, "runtime_objective_contract_test_missing")
+require("Heavy health contract" in automation, "runtime_archetype_contract_test_missing")
 
 # Active runtime must use the UE light-component signature with explicit color-space bool.
 for source_path in SRC.glob("*.cpp"):
     source = source_path.read_text(encoding="utf-8")
     for line_no, line in enumerate(source.splitlines(), start=1):
         if "SetLightColor(" in line and "FLinearColor::LerpUsingHSV" not in line:
-            # Calls may wrap, so only reject a clearly complete one-line call with no explicit bool.
             if line.count("SetLightColor(") and line.rstrip().endswith(");") and ", false" not in line:
                 failures.append(f"light_color_signature:{source_path.name}:{line_no}")
 
-# Crude but useful truncation guard for generated source files.
 for source_path in SRC.glob("*.cpp"):
     source = source_path.read_text(encoding="utf-8")
     require(source.count("{") == source.count("}"), f"brace_balance:{source_path.name}")
@@ -108,4 +118,4 @@ if failures:
     sys.exit(1)
 
 print("BLACKSITE_UNREAL_SOURCE_CONTRACT_OK")
-print("engine=5.8 module=BlacksiteRuntime physical_fire=PASS pathing=PASS extraction_hold=PASS visuals=PASS ue_build_gate=DEFINED")
+print("engine=5.8 module=BlacksiteRuntime physical_fire=PASS pathing=PASS extraction_hold=PASS visuals=PASS ue_build_gate=DEFINED gameplay_defaults=DEFINED")
