@@ -51,6 +51,17 @@ func _run_raid_smoke_test() -> void:
     if not ResourceLoader.exists("res://assets/characters/GorgeholdScout.glb"): failures.append("character_asset")
     if player != null and player.viewmodel == null: failures.append("player_viewmodel")
 
+    var ammo_persistence_ok := false
+    if player != null and player.has_method("smoke_ammo_persistence_regression"):
+        ammo_persistence_ok = bool(player.call("smoke_ammo_persistence_regression"))
+    if not ammo_persistence_ok:
+        failures.append("ammo_persistence")
+
+    if contract_secured:
+        failures.append("contract_should_start_unsecured")
+    if extract != null and extract.enabled_for_extract:
+        failures.append("extract_should_start_locked")
+
     var enemy_nodes := get_tree().get_nodes_in_group("blacksite_enemy")
     var rigged_count := 0
     for enemy_node in enemy_nodes:
@@ -60,7 +71,7 @@ func _run_raid_smoke_test() -> void:
     if rigged_count < 5: failures.append("rigged_enemies=%d" % rigged_count)
 
     if failures.is_empty():
-        print("BLACKSITE_SMOKE_RAID_OK enemies=%d rigged=%d loot=%d objective=%s viewmodel=%s" % [enemies_alive,rigged_count,pickups.size(),str(quest_position),str(player.viewmodel.name)])
+        print("BLACKSITE_SMOKE_RAID_OK enemies=%d rigged=%d loot=%d objective=%s viewmodel=%s ammo_persistence=PASS extract_lock=PASS" % [enemies_alive,rigged_count,pickups.size(),str(quest_position),str(player.viewmodel.name)])
         get_tree().quit(0)
     else:
         push_error("BLACKSITE_SMOKE_RAID_FAILED " + ",".join(failures))
@@ -125,7 +136,7 @@ func _start_raid() -> void:
     var layout: Dictionary = world.build()
     quest_position = layout.get("quest_pos",Vector3(-2,1,-32))
 
-    player = BlacksitePlayer.new()
+    player = BlacksitePlayerV102.new()
     player.setup(self)
     player.position = layout.get("player_spawn",Vector3(0,1,45))
     player.died.connect(_on_player_died)
