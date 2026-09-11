@@ -14,52 +14,20 @@
     <section id="menu" class="screen screen-on">
       <div class="menu-bg"></div>
       <div class="topbar">
-        <div>
-          <div class="kicker">BLACKSITE CONTRACTOR NETWORK</div>
-          <h1>BLACKSITE <span>EXTRACTION</span></h1>
-        </div>
-        <div class="wallet">
-          <span>₽ 284,500</span>
-          <span>$ 14,820</span>
-          <span>€ 3,240</span>
-        </div>
+        <div><div class="kicker">BLACKSITE CONTRACTOR NETWORK</div><h1>BLACKSITE <span>EXTRACTION</span></h1></div>
+        <div class="wallet"><span>₽ 284,500</span><span>$ 14,820</span><span>€ 3,240</span></div>
       </div>
-
       <div class="menu-grid">
         <aside class="operator-panel glass">
-          <div class="operator-portrait">
-            <div class="portrait-silhouette"></div>
-            <div class="portrait-overlay">
-              <span class="status-dot"></span>
-              <strong>RAVEN-6</strong>
-              <small>PMC / LVL 07</small>
-            </div>
-          </div>
-          <div class="readiness">
-            <div><span>HEALTH</span><b>100</b></div>
-            <div><span>ARMOR</span><b>60</b></div>
-            <div><span>WEIGHT</span><b>18.4kg</b></div>
-          </div>
+          <div class="operator-portrait"><div class="portrait-silhouette"></div><div class="portrait-overlay"><span class="status-dot"></span><strong>RAVEN-6</strong><small>PMC / LVL 07</small></div></div>
+          <div class="readiness"><div><span>HEALTH</span><b>100</b></div><div><span>ARMOR</span><b>60</b></div><div><span>WEIGHT</span><b>18.4kg</b></div></div>
         </aside>
-
         <main class="deployment glass">
           <div class="section-label">SELECT LOCATION</div>
           <div class="map-card selected">
-            <div class="map-art harbor-art">
-              <div class="sun"></div>
-              <div class="crane crane-a"></div>
-              <div class="crane crane-b"></div>
-              <div class="container c1"></div><div class="container c2"></div><div class="container c3"></div>
-            </div>
-            <div class="map-meta">
-              <div>
-                <h2>HARBOR YARD</h2>
-                <p>Containers, warehouses, loading lanes, extraction gate.</p>
-              </div>
-              <div class="tags"><span>DAY</span><span>MEDIUM</span><span>12–18 MIN</span></div>
-            </div>
+            <div class="map-art harbor-art"><div class="sun"></div><div class="crane crane-a"></div><div class="crane crane-b"></div><div class="container c1"></div><div class="container c2"></div><div class="container c3"></div></div>
+            <div class="map-meta"><div><h2>HARBOR YARD</h2><p>Containers, warehouses, loading lanes, extraction gate.</p></div><div class="tags"><span>DAY</span><span>MEDIUM</span><span>12–18 MIN</span></div></div>
           </div>
-
           <div class="section-label">RAID LOADOUT</div>
           <div id="loadout-grid" class="loadout-grid">
             <button class="loadout-slot active" data-slot="primary"><span class="slot-icon weapon-icon rifle"></span><b>PRIMARY</b><small>M4-style rifle</small></button>
@@ -69,12 +37,8 @@
             <button class="loadout-slot"><span class="slot-icon bag-icon"></span><b>PACK</b><small>24 slots</small></button>
             <button class="loadout-slot"><span class="slot-icon med-icon"></span><b>MEDICAL</b><small>IFAK</small></button>
           </div>
-
-          <button id="deploy-btn" class="deploy-btn" type="button">
-            <span>DEPLOY TO HARBOR</span><small>Gear at risk · extraction required</small>
-          </button>
+          <button id="deploy-btn" class="deploy-btn" type="button"><span>DEPLOY TO HARBOR</span><small>Gear at risk · extraction required</small></button>
         </main>
-
         <aside class="stash glass">
           <div class="stash-head"><div><div class="section-label">STASH</div><h3>READY GEAR</h3></div><span>18 / 60</span></div>
           <div class="stash-grid">
@@ -84,143 +48,40 @@
             <button class="stash-item item-ammo"><span class="item-thumb ammo-thumb"></span><small>5.56 AMMO</small></button>
             <button class="stash-item item-med"><span class="item-thumb med-thumb"></span><small>IFAK</small></button>
             <button class="stash-item item-gpu"><span class="item-thumb gpu-thumb"></span><small>GPU</small></button>
-          </div>
-          <div class="stash-note">Tap gear to inspect. Raid loss applies only after insertion.</div>
+          </div><div class="stash-note">Tap gear to inspect. Raid loss applies only after insertion.</div>
         </aside>
       </div>
     </section>
 
-    <section id="brief" class="screen modal-screen">
-      <div class="brief-card glass">
-        <div class="section-label">DEPLOYMENT BRIEF</div>
-        <h2>HARBOR YARD</h2>
-        <p>Move through the container lanes, eliminate hostiles, recover the encrypted drive, then reach Gate 3.</p>
-        <div class="brief-stats"><span>INSERTION SHIELD <b>6s</b></span><span>HOSTILES <b>8</b></span><span>OBJECTIVE <b>1</b></span></div>
-        <button id="begin-btn" type="button" class="deploy-btn">BEGIN INSERTION</button>
-      </div>
-    </section>
+    <section id="brief" class="screen modal-screen"><div class="brief-card glass"><div class="section-label">DEPLOYMENT BRIEF</div><h2>HARBOR YARD</h2><p>Move through the container lanes, eliminate hostiles, recover the encrypted drive, then reach Gate 3.</p><div class="brief-stats"><span>INSERTION SHIELD <b>6s</b></span><span>HOSTILES <b>8</b></span><span>OBJECTIVE <b>1</b></span></div><button id="begin-btn" type="button" class="deploy-btn">BEGIN INSERTION</button></div></section>
 
     <section id="hud" class="hud hidden">
       <div class="hud-top-left glass"><b id="raid-timer">15:00</b><small id="objective">OBJECTIVE · Recover encrypted drive</small></div>
       <div class="hud-top-right glass"><small>M4-STYLE 5.56</small><b><span id="ammo">30</span><i>/</i><span id="reserve">90</span></b></div>
       <div class="vitals glass"><div><span>HP</span><b id="hp">100</b></div><div><span>ARMOR</span><b id="armor">60</b></div><div><span>STAM</span><b id="stamina">100</b></div></div>
-      <div id="shield" class="shield-pill">INSERTION SHIELD · 6.0</div>
-      <div id="crosshair" class="crosshair"><span></span><span></span><span></span><span></span></div>
-      <div id="damage-flash"></div>
-      <div id="hit-marker" class="hit-marker">×</div>
-      <div id="toast" class="toast"></div>
+      <div id="shield" class="shield-pill">INSERTION SHIELD · 6.0</div><div id="crosshair" class="crosshair"><span></span><span></span><span></span><span></span></div><div id="damage-flash"></div><div id="hit-marker" class="hit-marker">×</div><div id="toast" class="toast"></div>
     </section>
 
-    <section id="mobile-controls" class="mobile-controls hidden" aria-label="Mobile controls">
-      <div id="move-pad" class="move-pad"><div id="move-knob" class="move-knob"></div></div>
-      <div id="look-zone" class="look-zone"></div>
-      <button id="fire-btn" type="button" class="fire-btn">FIRE</button>
-      <button id="ads-btn" type="button" class="round-btn ads-btn">ADS</button>
-      <button id="reload-btn" type="button" class="round-btn reload-btn">RLD</button>
-      <button id="use-btn" type="button" class="round-btn use-btn">USE</button>
-    </section>
+    <section id="mobile-controls" class="mobile-controls hidden" aria-label="Mobile controls"><div id="move-pad" class="move-pad"><div id="move-knob" class="move-knob"></div></div><div id="look-zone" class="look-zone"></div><button id="fire-btn" type="button" class="fire-btn">FIRE</button><button id="ads-btn" type="button" class="round-btn ads-btn">ADS</button><button id="reload-btn" type="button" class="round-btn reload-btn">RLD</button><button id="use-btn" type="button" class="round-btn use-btn">USE</button></section>
+    <section id="result" class="screen modal-screen"><div class="brief-card glass"><div class="section-label">RAID REPORT</div><h2 id="result-title">EXTRACTED</h2><p id="result-copy"></p><button id="return-btn" type="button" class="deploy-btn">RETURN TO TERMINAL</button></div></section>
 
-    <section id="result" class="screen modal-screen">
-      <div class="brief-card glass">
-        <div class="section-label">RAID REPORT</div>
-        <h2 id="result-title">EXTRACTED</h2>
-        <p id="result-copy"></p>
-        <button id="return-btn" type="button" class="deploy-btn">RETURN TO TERMINAL</button>
-      </div>
-    </section>
-
-    <div id="boot" class="boot">
-      <div class="boot-mark">BLACKSITE</div>
-      <div class="boot-bar"><span></span></div>
-      <small id="boot-copy">Preparing renderer…</small>
-    </div>
+    <div id="boot" class="boot"><div class="boot-mark">BLACKSITE</div><div class="boot-bar"><span></span></div><small id="boot-copy">Preparing renderer…</small></div>
   </div>
 
   <script>
     (() => {
-      const boot = document.getElementById('boot');
-      const copy = document.getElementById('boot-copy');
-      const showFailure = (message) => {
-        console.error('[BLACKSITE BOOT]', message);
-        if (!copy) return;
-        copy.textContent = 'BOOT ERROR · ' + message;
-        copy.style.color = '#ff9f80';
-        const bar = document.querySelector('.boot-bar span');
-        if (bar) bar.style.background = '#ff5a36';
+      const boot=document.getElementById('boot'),copy=document.getElementById('boot-copy');
+      const showFailure=(message)=>{console.error('[BLACKSITE BOOT]',message);if(!copy)return;copy.textContent='BOOT ERROR · '+message;copy.style.color='#ff9f80';const bar=document.querySelector('.boot-bar span');if(bar)bar.style.background='#ff5a36'};
+      window.addEventListener('error',event=>{if(event&&event.message&&!String(event.message).includes('Script error'))showFailure(String(event.message).slice(0,160))});
+      window.addEventListener('unhandledrejection',event=>{const reason=event&&event.reason?(event.reason.message||String(event.reason)):'Unhandled promise rejection';showFailure(String(reason).slice(0,160))});
+      const engines=['https://cdn.jsdelivr.net/npm/playcanvas@2.22.1/build/playcanvas.min.js','https://code.playcanvas.com/playcanvas-stable.min.js','https://unpkg.com/playcanvas@2.22.1/build/playcanvas.min.js'];
+      const loadGame=()=>{
+        if(!window.pc||!window.pc.Application){showFailure('3D engine loaded without the expected PlayCanvas API');return}
+        copy.textContent='Renderer loaded · applying Engine 2 compatibility…';
+        try{const proto=window.pc.Scene&&window.pc.Scene.prototype,fogDesc=proto&&Object.getOwnPropertyDescriptor(proto,'fog');if(proto&&fogDesc&&fogDesc.get&&!fogDesc.set){Object.defineProperty(proto,'fog',{configurable:true,enumerable:fogDesc.enumerable,get:fogDesc.get,set(value){fogDesc.get.call(this).type=value}});Object.defineProperties(proto,{fogColor:{configurable:true,set(value){fogDesc.get.call(this).color.copy(value)},get(){return fogDesc.get.call(this).color}},fogStart:{configurable:true,set(value){fogDesc.get.call(this).start=value},get(){return fogDesc.get.call(this).start}},fogEnd:{configurable:true,set(value){fogDesc.get.call(this).end=value},get(){return fogDesc.get.call(this).end}}})}}catch(e){showFailure('Compatibility setup failed: '+(e.message||e));return}
+        copy.textContent='Renderer loaded · building Harbor Yard…';const game=document.createElement('script');game.src='src/game.js?v=20260911e';game.onload=()=>{window.setTimeout(()=>{if(document.getElementById('boot')&&!String(copy.textContent||'').startsWith('BOOT ERROR'))showFailure('Renderer initialized but scene startup did not complete · last stage: '+String(copy.textContent||'unknown'))},6500)};game.onerror=()=>showFailure('Could not load the game script');document.body.appendChild(game)
       };
-
-      window.addEventListener('error', (event) => {
-        if (event && event.message && !String(event.message).includes('Script error')) {
-          showFailure(String(event.message).slice(0, 160));
-        }
-      });
-      window.addEventListener('unhandledrejection', (event) => {
-        const reason = event && event.reason ? (event.reason.message || String(event.reason)) : 'Unhandled promise rejection';
-        showFailure(String(reason).slice(0, 160));
-      });
-
-      const engines = [
-        'https://cdn.jsdelivr.net/npm/playcanvas@2.22.1/build/playcanvas.min.js',
-        'https://code.playcanvas.com/playcanvas-stable.min.js',
-        'https://unpkg.com/playcanvas@2.22.1/build/playcanvas.min.js'
-      ];
-
-      const loadGame = () => {
-        if (!window.pc || !window.pc.Application) {
-          showFailure('3D engine loaded without the expected PlayCanvas API');
-          return;
-        }
-        copy.textContent = 'Renderer loaded · applying Engine 2 compatibility…';
-
-        try {
-          const proto = window.pc.Scene && window.pc.Scene.prototype;
-          const fogDesc = proto && Object.getOwnPropertyDescriptor(proto, 'fog');
-          if (proto && fogDesc && fogDesc.get && !fogDesc.set) {
-            Object.defineProperty(proto, 'fog', {
-              configurable: true,
-              enumerable: fogDesc.enumerable,
-              get: fogDesc.get,
-              set(value) { fogDesc.get.call(this).type = value; }
-            });
-            Object.defineProperties(proto, {
-              fogColor: { configurable: true, set(value) { fogDesc.get.call(this).color.copy(value); }, get() { return fogDesc.get.call(this).color; } },
-              fogStart: { configurable: true, set(value) { fogDesc.get.call(this).start = value; }, get() { return fogDesc.get.call(this).start; } },
-              fogEnd: { configurable: true, set(value) { fogDesc.get.call(this).end = value; }, get() { return fogDesc.get.call(this).end; } }
-            });
-          }
-        } catch (compatError) {
-          showFailure('Compatibility setup failed: ' + (compatError.message || compatError));
-          return;
-        }
-
-        copy.textContent = 'Renderer loaded · building Harbor Yard…';
-        const game = document.createElement('script');
-        game.src = 'src/game.js?v=20260911d';
-        game.onload = () => {
-          window.setTimeout(() => {
-            if (document.getElementById('boot') && !String(copy.textContent || '').startsWith('BOOT ERROR')) {
-              showFailure('Renderer initialized but scene startup did not complete · last stage: ' + String(copy.textContent || 'unknown'));
-            }
-          }, 5500);
-        };
-        game.onerror = () => showFailure('Could not load the game script');
-        document.body.appendChild(game);
-      };
-
-      const tryEngine = (index) => {
-        if (index >= engines.length) {
-          showFailure('Could not load the 3D engine. Check Safari content blockers or network access.');
-          return;
-        }
-        copy.textContent = `Loading 3D engine · source ${index + 1}/${engines.length}…`;
-        const script = document.createElement('script');
-        script.src = engines[index];
-        script.crossOrigin = 'anonymous';
-        script.onload = () => window.pc ? loadGame() : tryEngine(index + 1);
-        script.onerror = () => tryEngine(index + 1);
-        document.head.appendChild(script);
-      };
-
+      const tryEngine=index=>{if(index>=engines.length){showFailure('Could not load the 3D engine. Check Safari content blockers or network access.');return}copy.textContent=`Loading 3D engine · source ${index+1}/${engines.length}…`;const script=document.createElement('script');script.src=engines[index];script.crossOrigin='anonymous';script.onload=()=>window.pc?loadGame():tryEngine(index+1);script.onerror=()=>tryEngine(index+1);document.head.appendChild(script)};
       tryEngine(0);
     })();
   </script>
