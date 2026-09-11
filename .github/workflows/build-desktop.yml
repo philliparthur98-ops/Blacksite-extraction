@@ -40,7 +40,7 @@ jobs:
           cp -R template_unpack/templates/. "$HOME/.local/share/godot/export_templates/4.7.2.stable/"
           test -f "$HOME/.local/share/godot/export_templates/4.7.2.stable/windows_release_x86_64.exe"
 
-      - name: Vendor v1.03 CC0 combat environment and loot assets
+      - name: Vendor v1.04 CC0 combat environment and loot assets
         shell: bash
         run: |
           set -euo pipefail
@@ -128,15 +128,15 @@ jobs:
           PY
 
           cat > desktop/assets/THIRD_PARTY_ASSETS.txt <<'EOF'
-          BLACKSITE: Extraction v1.03 asset provenance
+          BLACKSITE: Extraction v1.04 asset provenance
 
           PBR surfaces: ambientCG CC0 via petroulacl/fps-asset-kit.
           VXR/P9/SG-12 firearm meshes: Mega Weapon Pack assets via 3dassets.dev, CC0 1.0.
           Gorgehold Scout fallback character: MakeHuman-based asset via 3dassets.dev, CC0 1.0.
           First-person arms: WRAD ARMS by wriks, CC0 1.0.
-          v1.03 enemies: Masked Raider, Armoured Heavy and Field Medic from FPS Survival Forest Outpost via 3dassets.dev, CC0 1.0.
-          v1.03 world loot: FPS Survival Forest Outpost scene via 3dassets.dev, CC0 1.0; Key Card asset via 3dassets.dev, CC0 1.0.
-          v1.03 industrial environment kit: JaronKBragg7337/asset-pack-ue-threejs-blender-unity, CC0 1.0.
+          Enemies: Masked Raider, Armoured Heavy and Field Medic from FPS Survival Forest Outpost via 3dassets.dev, CC0 1.0.
+          World loot: FPS Survival Forest Outpost scene and Key Card via 3dassets.dev, CC0 1.0.
+          Industrial environment kit: JaronKBragg7337/asset-pack-ue-threejs-blender-unity, CC0 1.0.
 
           SPT/Single Player Tarkov was used only as a high-level reference for extraction-game information architecture, persistence and workflow density. No SPT/Escape from Tarkov code, maps, models, UI artwork, audio or proprietary assets are included.
           BLACKSITE code, map layout, narrative, UI design and game design remain original.
@@ -153,65 +153,65 @@ jobs:
           fi
           test -d desktop/.godot/imported
 
-      - name: Full Harbor v1.03 runtime smoke test
+      - name: Full Harbor v1.04 runtime smoke test
         shell: bash
         run: |
           set -o pipefail
           ./godot --headless --path desktop --quit-after 240 -- --smoke-raid 2>&1 | tee godot-runtime.log
-
-          # Catch all real runtime faults. Godot's dummy/headless renderer can emit
-          # teardown-only resource diagnostics after a successful quit; keep those
-          # separately documented but do not confuse them with live game errors.
-          grep -E "^ERROR:" godot-runtime.log | \
-            grep -Ev "^ERROR: [0-9]+ resources still in use at exit|^ERROR: [0-9]+ RID allocations of type|^ERROR: Pages in use exist at exit" \
-            > godot-runtime-errors.log || true
-
-          if grep -E "SCRIPT ERROR|Invalid call|Invalid assignment|Attempt to call|nonexistent function|Failed loading resource|Failed to load script|BLACKSITE_SMOKE_RAID_FAILED" godot-runtime.log || test -s godot-runtime-errors.log; then
+          grep -E "^ERROR:" godot-runtime.log | grep -Ev "^ERROR: [0-9]+ resources still in use at exit|^ERROR: [0-9]+ RID allocations of type|^ERROR: Pages in use exist at exit" > godot-runtime-errors.log || true
+          if grep -E "SCRIPT ERROR|Invalid call|Invalid assignment|Attempt to call|nonexistent function|Failed loading resource|Failed to load script|BLACKSITE_SMOKE_RAID_FAILED|BLACKSITE_TACTICAL_SMOKE_FAILED" godot-runtime.log || test -s godot-runtime-errors.log; then
             echo "Godot runtime smoke test reported live errors."
             cat godot-runtime-errors.log || true
             exit 1
           fi
+          grep -q "BLACKSITE_TACTICAL_SMOKE_OK" godot-runtime.log
+          grep -q "cover_block=PASS" godot-runtime.log
+          grep -q "obstacle_route=PASS" godot-runtime.log
+          grep -q "gunfire_alert=PASS" godot-runtime.log
           grep -q "BLACKSITE_SMOKE_RAID_OK" godot-runtime.log
           grep -q "world_scale=PASS" godot-runtime.log
           grep -q "fp_rig=PASS" godot-runtime.log
           grep -q "grip=PASS" godot-runtime.log
           grep -q "ammo_persistence=PASS" godot-runtime.log
           grep -q "extract_lock=PASS" godot-runtime.log
+          grep -q "economy=PASS" godot-runtime.log
+          grep -q "raid_loss=PASS" godot-runtime.log
+          grep -q "save_recovery=PASS" godot-runtime.log
           grep -q "ui_v103=PASS" godot-runtime.log
 
-      - name: Export BLACKSITE v1.03 Windows build
+      - name: Export BLACKSITE v1.04 Windows build
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p dist
-          ./godot --headless --path desktop --export-release "Windows Desktop" "$GITHUB_WORKSPACE/dist/BLACKSITE_Extraction_v1.03.exe" 2>&1 | tee godot-export.log
-          test -s dist/BLACKSITE_Extraction_v1.03.exe
+          ./godot --headless --path desktop --export-release "Windows Desktop" "$GITHUB_WORKSPACE/dist/BLACKSITE_Extraction_v1.04.exe" 2>&1 | tee godot-export.log
+          test -s dist/BLACKSITE_Extraction_v1.04.exe
           cat > dist/README.txt <<'EOF'
-          BLACKSITE: Extraction v1.03 — HARBOR EXPANSION
+          BLACKSITE: Extraction v1.04 — TACTICAL COMBAT
 
-          Double-click BLACKSITE_Extraction_v1.03.exe. No engine, launcher, runtime install, or internet connection is required.
+          Double-click BLACKSITE_Extraction_v1.04.exe. No engine, launcher, runtime install, or internet connection is required.
 
           WASD Move | Mouse Look | LMB Fire | RMB ADS | Shift Sprint | Ctrl Crouch
           R Reload | F Interact/Loot/Extract | H IFAK | 1/2/3 Weapons | Tab Field Inventory
           Esc Release Cursor | Click Recapture | F11 Toggle Fullscreen
 
-          v1.03 presentation overhaul:
-          - Harbor District expanded to a roughly 360 m x 360 m playable footprint with authored industrial districts and props.
-          - Weapon viewmodels now snap into the authored hand socket with weapon-specific local grip transforms.
-          - Scav/guard/raider presentation uses three distinct authored enemy character assets.
-          - World loot uses grounded 3D prop assets instead of glowing pedestals/spinning debug shapes.
-          - The terminal is rebuilt as a dense operator/gear/contracts operations workspace.
-          - Native 5K2K / 5120x2160 ultrawide support remains enabled.
+          v1.04 tactical combat pass:
+          - Hostile shots now use muzzle-origin physical rays with spread; solid cover blocks damage.
+          - Enemies use obstacle-aware detour routing instead of continually steering into blockers.
+          - Combat perception now transitions through alert/investigate, multi-point search and hold/return states.
+          - Scav, guard and raider archetypes use materially different push/hold/flank goals.
+          - Nearby hostiles react when an ally goes down.
+          - v1.03 Harbor, progression integrity, authored enemy/loot presentation and first-person rig improvements remain intact.
 
           BLACKSITE is an original game. SPT/Escape from Tarkov was used only as a high-level design reference; no proprietary Tarkov/SPT assets or code are included.
           EOF
-          (cd dist && sha256sum BLACKSITE_Extraction_v1.03.exe > SHA256SUM.txt && zip -9 BLACKSITE_Extraction_v1.03_Windows_x64.zip BLACKSITE_Extraction_v1.03.exe README.txt SHA256SUM.txt)
+          (cd dist && sha256sum BLACKSITE_Extraction_v1.04.exe > SHA256SUM.txt && zip -9 BLACKSITE_Extraction_v1.04_Windows_x64.zip BLACKSITE_Extraction_v1.04.exe README.txt SHA256SUM.txt)
 
       - name: Upload playable Windows package
         uses: actions/upload-artifact@v4
         with:
-          name: BLACKSITE-Extraction-v1.03-Windows
-          path: dist/BLACKSITE_Extraction_v1.03_Windows_x64.zip
+          name: BLACKSITE-Extraction-v1.04-Windows
+          path: dist/BLACKSITE_Extraction_v1.04_Windows_x64.zip
           if-no-files-found: error
           compression-level: 0
           retention-days: 30
@@ -220,7 +220,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: blacksite-v103-build-logs
+          name: blacksite-v104-build-logs
           path: |
             godot-validate.log
             godot-runtime.log
