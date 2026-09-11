@@ -14,7 +14,7 @@ permissions:
 jobs:
   build-windows:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -40,13 +40,14 @@ jobs:
           cp -R template_unpack/templates/. "$HOME/.local/share/godot/export_templates/4.7.2.stable/"
           test -f "$HOME/.local/share/godot/export_templates/4.7.2.stable/windows_release_x86_64.exe"
 
-      - name: Vendor CC0 models and PBR materials
+      - name: Vendor v1.01 CC0 combat assets and PBR materials
         shell: bash
         run: |
           set -euo pipefail
           RAW="https://raw.githubusercontent.com/petroulacl/fps-asset-kit/main"
-          mkdir -p desktop/assets/{textures,weapons,audio}
-          grab(){ echo "Fetching $2"; curl -LfsS --retry 3 "$1" -o "$2"; }
+          mkdir -p desktop/assets/{textures,weapons,characters,audio}
+          grab(){ echo "Fetching $2"; curl -LfsS --retry 4 --retry-delay 2 "$1" -o "$2"; }
+
           grab "$RAW/textures/Asphalt023S/Asphalt023S_2K-JPG_Color.jpg" desktop/assets/textures/asphalt_color.jpg
           grab "$RAW/textures/Asphalt023S/Asphalt023S_2K-JPG_NormalGL.jpg" desktop/assets/textures/asphalt_normal.jpg
           grab "$RAW/textures/Asphalt023S/Asphalt023S_2K-JPG_Roughness.jpg" desktop/assets/textures/asphalt_rough.jpg
@@ -59,82 +60,120 @@ jobs:
           grab "$RAW/textures/Metal063/Metal063_2K-JPG_Color.jpg" desktop/assets/textures/metal_color.jpg
           grab "$RAW/textures/Metal063/Metal063_2K-JPG_NormalGL.jpg" desktop/assets/textures/metal_normal.jpg
           grab "$RAW/textures/Metal063/Metal063_2K-JPG_Roughness.jpg" desktop/assets/textures/metal_rough.jpg
-          grab "$RAW/weapons/flat_guns_west/Flat%20Guns%20West/GLB/Rifle_Assault_West.glb" desktop/assets/weapons/Rifle_Assault_West.glb
-          grab "$RAW/weapons/flat_guns_west/Flat%20Guns%20West/GLB/Pistol_Full_West.glb" desktop/assets/weapons/Pistol_Full_West.glb
-          grab "$RAW/weapons/flat_guns_west/Flat%20Guns%20West/GLB/Shotgun_Pump_West.glb" desktop/assets/weapons/Shotgun_Pump_West.glb
+
+          # First-person-grade modern CC0 firearms, with rigid magazine/charging/slide animation clips.
+          grab "https://cdn.3dassets.dev/assets/33096/v1/model.glb" desktop/assets/weapons/VXR_Carbine.glb
+          grab "https://cdn.3dassets.dev/assets/33458/v1/model.glb" desktop/assets/weapons/P9_Duty.glb
+          grab "https://cdn.3dassets.dev/assets/33101/v1/model.glb" desktop/assets/weapons/SG12_Breacher.glb
+
+          # Rigged MakeHuman-based CC0 character: 74-joint skeleton with idle/walk/run/grasp clips.
+          grab "https://cdn.3dassets.dev/assets/32901/v1/model.glb" desktop/assets/characters/GorgeholdScout.glb
 
           python3 - <<'PY'
           import math, random, struct, wave
-          random.seed(7407); RATE=48000
-          def shot(path,duration,crack,thump,decay,echo):
-              n=int(RATE*duration); buf=[0.0]*n; out=[]; delay=int(RATE*.055)
-              for i in range(n):
-                  t=i/RATE; env=math.exp(-t*decay)
-                  s=random.uniform(-1,1)*crack*math.exp(-t*78)
-                  s+=math.sin(2*math.pi*(82+35*math.exp(-t*18))*t)*thump*math.exp(-t*12)
-                  s+=math.sin(2*math.pi*210*t)*.18*env+random.uniform(-1,1)*.16*env
-                  if i>=delay:s+=buf[i-delay]*echo
-                  s=max(-1,min(1,s));buf[i]=s;out.append(int(s*30000))
+          random.seed(101); RATE=48000
+          def write(path, samples):
               with wave.open(path,'wb') as w:
-                  w.setnchannels(1);w.setsampwidth(2);w.setframerate(RATE);w.writeframes(b''.join(struct.pack('<h',x) for x in out))
-          shot('desktop/assets/audio/rifle.wav',.52,1,.72,8.5,.22)
-          shot('desktop/assets/audio/shotgun.wav',.72,1,1,6,.28)
-          for p in ['desktop/assets/audio/rifle.wav','desktop/assets/audio/shotgun.wav']:
-              with open(p,'rb') as f: assert f.read(4)==b'RIFF'
+                  w.setnchannels(1); w.setsampwidth(2); w.setframerate(RATE)
+                  w.writeframes(b''.join(struct.pack('<h', max(-32767,min(32767,int(x*32767)))) for x in samples))
+          def shot(path,duration,crack,thump,decay,echo,pitch):
+              n=int(RATE*duration); out=[0.0]*n; delay=int(RATE*.048)
+              for i in range(n):
+                  t=i/RATE
+                  transient=random.uniform(-1,1)*crack*math.exp(-t*95)
+                  body=math.sin(2*math.pi*(pitch+42*math.exp(-t*14))*t)*thump*math.exp(-t*11)
+                  snap=math.sin(2*math.pi*(pitch*3.2)*t)*.16*math.exp(-t*34)
+                  tail=random.uniform(-1,1)*.13*math.exp(-t*decay)
+                  s=transient+body+snap+tail
+                  if i>=delay: s += out[i-delay]*echo
+                  out[i]=max(-1,min(1,s))
+              write(path,out)
+          def clack(path):
+              n=int(RATE*.34); out=[]
+              for i in range(n):
+                  t=i/RATE
+                  a=random.uniform(-1,1)*.55*math.exp(-((t-.035)/.012)**2)
+                  b=random.uniform(-1,1)*.48*math.exp(-((t-.205)/.018)**2)
+                  ring=math.sin(2*math.pi*1180*t)*.12*(math.exp(-t*18)+math.exp(-max(0,t-.19)*22)*(1 if t>.19 else 0))
+                  out.append(max(-1,min(1,a+b+ring)))
+              write(path,out)
+          shot('desktop/assets/audio/rifle.wav',.56,1.0,.72,8.0,.21,86)
+          shot('desktop/assets/audio/pistol.wav',.40,.94,.42,10.0,.14,118)
+          shot('desktop/assets/audio/shotgun.wav',.78,1.0,1.0,5.8,.28,63)
+          clack('desktop/assets/audio/reload.wav')
+          for p in ['rifle.wav','pistol.wav','shotgun.wav','reload.wav']:
+              with open('desktop/assets/audio/'+p,'rb') as f: assert f.read(4)==b'RIFF'
           PY
 
           cat > desktop/assets/THIRD_PARTY_ASSETS.txt <<'EOF'
-          BLACKSITE: Extraction 3D weapon models and PBR materials use CC0/public-domain assets curated at:
-          https://github.com/petroulacl/fps-asset-kit
-          Firearm audio in this build is original procedurally generated audio.
-          BLACKSITE code, map layout, story, UI and game design are original.
+          BLACKSITE: Extraction v1.01 asset provenance
+
+          PBR surfaces: ambientCG CC0 via https://github.com/petroulacl/fps-asset-kit
+          VXR carbine: Piston Carbine, Night Loadout, Mega Weapon Pack, CC0 1.0
+          https://3dassets.dev/assets/mega-weapon-pack-piston-carbine-night-loadout-a4b3b18a
+          P9 duty pistol: Compact Pistol, Carry Loadout, Mega Weapon Pack, CC0 1.0
+          https://3dassets.dev/assets/mega-weapon-pack-compact-pistol-carry-loadout-cc8dacf4
+          SG-12 breacher: Magazine Shotgun, Fitted, Mega Weapon Pack, CC0 1.0
+          https://3dassets.dev/assets/mega-weapon-pack-tactical-shotgun-loadout-e1d57a86
+          Character: Gorgehold Scout, MakeHuman-based rigged character, CC0 1.0
+          https://3dassets.dev/assets/gorgehold-survivor-gallery-and-operations-gorgehold-sc-5418288a
+
+          Firearm/reload audio in this build is original procedurally generated audio.
+          BLACKSITE code, map layout, narrative, UI and game design are original.
           EOF
 
       - name: Import assets and validate Godot project
         shell: bash
         run: |
           set -o pipefail
-          ./godot --headless --editor --path desktop --quit-after 25 2>&1 | tee godot-validate.log
+          ./godot --headless --editor --path desktop --quit-after 40 2>&1 | tee godot-validate.log
           if grep -E "SCRIPT ERROR|Parse Error|Failed loading resource|Failed to load script|Cannot get class|Not a WAV file" godot-validate.log; then
             echo "Godot reported parser/resource errors."
             exit 1
           fi
+          test -d desktop/.godot/imported
 
-      - name: Runtime smoke test main scene
+      - name: Full Harbor raid runtime smoke test
         shell: bash
         run: |
           set -o pipefail
-          ./godot --headless --path desktop --quit-after 180 2>&1 | tee godot-runtime.log
-          if grep -E "SCRIPT ERROR|Invalid call|Invalid assignment|Attempt to call|nonexistent function|Failed loading resource|Failed to load script" godot-runtime.log; then
+          ./godot --headless --path desktop --quit-after 180 -- --smoke-raid 2>&1 | tee godot-runtime.log
+          if grep -E "SCRIPT ERROR|Invalid call|Invalid assignment|Attempt to call|nonexistent function|Failed loading resource|Failed to load script|BLACKSITE_SMOKE_RAID_FAILED" godot-runtime.log; then
             echo "Godot runtime smoke test reported errors."
             exit 1
           fi
+          grep -q "BLACKSITE_SMOKE_RAID_OK" godot-runtime.log
 
-      - name: Export single-file Windows build
+      - name: Export BLACKSITE v1.01 Windows build
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p dist
-          ./godot --headless --path desktop --export-release "Windows Desktop" "$GITHUB_WORKSPACE/dist/BLACKSITE_Extraction.exe" 2>&1 | tee godot-export.log
-          test -s dist/BLACKSITE_Extraction.exe
+          ./godot --headless --path desktop --export-release "Windows Desktop" "$GITHUB_WORKSPACE/dist/BLACKSITE_Extraction_v1.01.exe" 2>&1 | tee godot-export.log
+          test -s dist/BLACKSITE_Extraction_v1.01.exe
           cat > dist/README.txt <<'EOF'
-          BLACKSITE: Extraction — BLACK TIDE vertical slice
+          BLACKSITE: Extraction v1.01 — BLACK TIDE
 
-          Double-click BLACKSITE_Extraction.exe. No engine, launcher, runtime install, or internet connection is required.
+          Double-click BLACKSITE_Extraction_v1.01.exe. No engine, launcher, runtime install, or internet connection is required.
 
           WASD Move | Mouse Look | LMB Fire | RMB ADS | Shift Sprint | Ctrl Crouch
-          R Reload | F Interact/Loot/Extract | H IFAK | 1/2/3 Weapons | Tab Field Inventory | Esc Release Cursor
+          R Reload | F Interact/Loot/Extract | H IFAK | 1/2/3 Weapons | Tab Field Inventory
+          Esc Release Cursor | Click Recapture | F11 Toggle Fullscreen
+
+          v1.01 focuses on desktop FPS presentation: corrected raw mouse-look handling, upgraded first-person arms,
+          high-detail CC0 weapon viewmodels, rigged humanoid enemies, locomotion/combat animation selection,
+          reload animation hooks, shell ejection, stronger recoil motion and combat feedback.
 
           Objective: recover the Black Tide archive drive inside Harbor District 07 and return alive to Gate 3.
           Field loot is only retained after successful extraction.
           EOF
-          (cd dist && sha256sum BLACKSITE_Extraction.exe > SHA256SUM.txt && zip -9 BLACKSITE_Extraction_Windows_x64.zip BLACKSITE_Extraction.exe README.txt SHA256SUM.txt)
+          (cd dist && sha256sum BLACKSITE_Extraction_v1.01.exe > SHA256SUM.txt && zip -9 BLACKSITE_Extraction_v1.01_Windows_x64.zip BLACKSITE_Extraction_v1.01.exe README.txt SHA256SUM.txt)
 
       - name: Upload playable Windows package
         uses: actions/upload-artifact@v4
         with:
-          name: BLACKSITE-Extraction-Windows
-          path: dist/BLACKSITE_Extraction_Windows_x64.zip
+          name: BLACKSITE-Extraction-v1.01-Windows
+          path: dist/BLACKSITE_Extraction_v1.01_Windows_x64.zip
           if-no-files-found: error
           compression-level: 0
           retention-days: 30
@@ -143,7 +182,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: blacksite-build-logs
+          name: blacksite-v101-build-logs
           path: |
             godot-validate.log
             godot-runtime.log
