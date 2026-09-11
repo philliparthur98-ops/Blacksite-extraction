@@ -2,6 +2,7 @@ config_version=5
 
 [application]
 config/name="BLACKSITE: Extraction"
+config/version="1.01"
 run/main_scene="res://scenes/Main.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 
