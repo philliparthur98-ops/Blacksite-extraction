@@ -1,0 +1,24 @@
+name: Unreal Source Sanity
+
+on:
+  push:
+    branches:
+      - main
+      - 'unreal/**'
+    paths:
+      - 'unreal/**'
+      - '.github/workflows/unreal-source-sanity.yml'
+  pull_request:
+    paths:
+      - 'unreal/**'
+      - '.github/workflows/unreal-source-sanity.yml'
+
+jobs:
+  source-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Unreal vertical slice contract
+        run: python3 unreal/Tests/source_contract.py
