@@ -40,7 +40,7 @@ jobs:
           cp -R template_unpack/templates/. "$HOME/.local/share/godot/export_templates/4.7.2.stable/"
           test -f "$HOME/.local/share/godot/export_templates/4.7.2.stable/windows_release_x86_64.exe"
 
-      - name: Vendor v1.01 CC0 combat assets and PBR materials
+      - name: Vendor v1.02B CC0 combat assets and PBR materials
         shell: bash
         run: |
           set -euo pipefail
@@ -61,8 +61,8 @@ jobs:
           grab "$RAW/textures/Metal063/Metal063_2K-JPG_NormalGL.jpg" desktop/assets/textures/metal_normal.jpg
           grab "$RAW/textures/Metal063/Metal063_2K-JPG_Roughness.jpg" desktop/assets/textures/metal_rough.jpg
 
-          # The source GLBs use KHR_mesh_quantization. Godot 4 currently rejects that extension,
-          # so dequantize to ordinary float attributes before placing assets in the project tree.
+          # The 3DAssets.dev GLBs use KHR_mesh_quantization, which Godot rejects,
+          # so dequantize those assets to ordinary float attributes before import.
           grab "https://cdn.3dassets.dev/assets/33096/v1/model.glb" /tmp/blacksite_glb/vxr.glb
           grab "https://cdn.3dassets.dev/assets/33458/v1/model.glb" /tmp/blacksite_glb/p9.glb
           grab "https://cdn.3dassets.dev/assets/33101/v1/model.glb" /tmp/blacksite_glb/sg12.glb
@@ -71,6 +71,11 @@ jobs:
           npx --yes @gltf-transform/cli dequantize /tmp/blacksite_glb/p9.glb desktop/assets/weapons/P9_Duty.glb
           npx --yes @gltf-transform/cli dequantize /tmp/blacksite_glb/sg12.glb desktop/assets/weapons/SG12_Breacher.glb
           npx --yes @gltf-transform/cli dequantize /tmp/blacksite_glb/scout.glb desktop/assets/characters/GorgeholdScout.glb
+
+          # WRAD ARMS is a purpose-built, fully rigged CC0 first-person viewmodel
+          # with dedicated socket bones. Its Blender-exported GLB imports directly.
+          grab "https://raw.githubusercontent.com/wwwriks/wrad-arms/main/arms.glb" desktop/assets/characters/WRAD_Arms.glb
+          test -s desktop/assets/characters/WRAD_Arms.glb
 
           python3 - <<'PY'
           import math, random, struct, wave
@@ -109,7 +114,7 @@ jobs:
           PY
 
           cat > desktop/assets/THIRD_PARTY_ASSETS.txt <<'EOF'
-          BLACKSITE: Extraction v1.01 asset provenance
+          BLACKSITE: Extraction v1.02B asset provenance
 
           PBR surfaces: ambientCG CC0 via https://github.com/petroulacl/fps-asset-kit
           VXR carbine: Piston Carbine, Night Loadout, Mega Weapon Pack, CC0 1.0
@@ -120,6 +125,8 @@ jobs:
           https://3dassets.dev/assets/mega-weapon-pack-tactical-shotgun-loadout-e1d57a86
           Character: Gorgehold Scout, MakeHuman-based rigged character, CC0 1.0
           https://3dassets.dev/assets/gorgehold-survivor-gallery-and-operations-gorgehold-sc-5418288a
+          First-person arms: WRAD ARMS by wriks, fully rigged FPS viewmodel arms, CC0 1.0
+          https://github.com/wwwriks/wrad-arms
 
           Firearm/reload audio in this build is original procedurally generated audio.
           BLACKSITE code, map layout, narrative, UI and game design are original.
@@ -146,37 +153,40 @@ jobs:
             exit 1
           fi
           grep -q "BLACKSITE_SMOKE_RAID_OK" godot-runtime.log
+          grep -q "fp_rig=PASS" godot-runtime.log
+          grep -q "ammo_persistence=PASS" godot-runtime.log
 
-      - name: Export BLACKSITE v1.01 Windows build
+      - name: Export BLACKSITE v1.02B Windows build
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p dist
-          ./godot --headless --path desktop --export-release "Windows Desktop" "$GITHUB_WORKSPACE/dist/BLACKSITE_Extraction_v1.01.exe" 2>&1 | tee godot-export.log
-          test -s dist/BLACKSITE_Extraction_v1.01.exe
+          ./godot --headless --path desktop --export-release "Windows Desktop" "$GITHUB_WORKSPACE/dist/BLACKSITE_Extraction_v1.02B.exe" 2>&1 | tee godot-export.log
+          test -s dist/BLACKSITE_Extraction_v1.02B.exe
           cat > dist/README.txt <<'EOF'
-          BLACKSITE: Extraction v1.01 — BLACK TIDE
+          BLACKSITE: Extraction v1.02B — BLACK TIDE
 
-          Double-click BLACKSITE_Extraction_v1.01.exe. No engine, launcher, runtime install, or internet connection is required.
+          Double-click BLACKSITE_Extraction_v1.02B.exe. No engine, launcher, runtime install, or internet connection is required.
 
           WASD Move | Mouse Look | LMB Fire | RMB ADS | Shift Sprint | Ctrl Crouch
           R Reload | F Interact/Loot/Extract | H IFAK | 1/2/3 Weapons | Tab Field Inventory
           Esc Release Cursor | Click Recapture | F11 Toggle Fullscreen
 
-          v1.01 focuses on desktop FPS presentation: corrected raw mouse-look handling, upgraded first-person arms,
-          high-detail CC0 weapon viewmodels, rigged humanoid enemies, locomotion/combat animation selection,
-          reload animation hooks, shell ejection, stronger recoil motion and combat feedback.
+          v1.02B replaces the generated primitive first-person arms with a rigged CC0 FPS viewmodel,
+          sockets the active weapon to the authored right-hand rig, preserves authored arm materials,
+          drives whole-rig idle/ADS/sprint/reload motion, and keeps raid-persistent ammunition state.
+          The ammo regression now uses the same production fire-state transition used by live gameplay.
 
           Objective: recover the Black Tide archive drive inside Harbor District 07 and return alive to Gate 3.
           Field loot is only retained after successful extraction.
           EOF
-          (cd dist && sha256sum BLACKSITE_Extraction_v1.01.exe > SHA256SUM.txt && zip -9 BLACKSITE_Extraction_v1.01_Windows_x64.zip BLACKSITE_Extraction_v1.01.exe README.txt SHA256SUM.txt)
+          (cd dist && sha256sum BLACKSITE_Extraction_v1.02B.exe > SHA256SUM.txt && zip -9 BLACKSITE_Extraction_v1.02B_Windows_x64.zip BLACKSITE_Extraction_v1.02B.exe README.txt SHA256SUM.txt)
 
       - name: Upload playable Windows package
         uses: actions/upload-artifact@v4
         with:
-          name: BLACKSITE-Extraction-v1.01-Windows
-          path: dist/BLACKSITE_Extraction_v1.01_Windows_x64.zip
+          name: BLACKSITE-Extraction-v1.02B-Windows
+          path: dist/BLACKSITE_Extraction_v1.02B_Windows_x64.zip
           if-no-files-found: error
           compression-level: 0
           retention-days: 30
@@ -185,7 +195,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: blacksite-v101-build-logs
+          name: blacksite-v102b-build-logs
           path: |
             godot-validate.log
             godot-runtime.log
