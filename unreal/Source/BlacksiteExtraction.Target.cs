@@ -8,6 +8,6 @@ public class BlacksiteExtractionTarget : TargetRules
         Type = TargetType.Game;
         DefaultBuildSettings = BuildSettingsVersion.Latest;
         IncludeOrderVersion = EngineIncludeOrderVersion.Latest;
-        ExtraModuleNames.Add("BlacksiteExtraction");
+        ExtraModuleNames.Add("BlacksiteRuntime");
     }
 }
