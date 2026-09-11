@@ -1,0 +1,13 @@
+{
+  "FileVersion": 3,
+  "EngineAssociation": "5.8",
+  "Category": "Games",
+  "Description": "BLACKSITE Extraction - Unreal Engine vertical slice",
+  "Modules": [
+    {
+      "Name": "BlacksiteExtraction",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
+    }
+  ]
+}
