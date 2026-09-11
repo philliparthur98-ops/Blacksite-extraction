@@ -6,7 +6,6 @@
   <meta name="theme-color" content="#071018" />
   <title>BLACKSITE: Extraction</title>
   <link rel="stylesheet" href="styles.css" />
-  <script src="https://code.playcanvas.com/playcanvas-stable.min.js"></script>
 </head>
 <body>
   <div id="app-shell">
@@ -137,6 +136,69 @@
     </div>
   </div>
 
-  <script src="src/game.js"></script>
+  <script>
+    (() => {
+      const copy = document.getElementById('boot-copy');
+      const showFailure = (message) => {
+        console.error('[BLACKSITE BOOT]', message);
+        if (!copy) return;
+        copy.textContent = 'BOOT ERROR · ' + message;
+        copy.style.color = '#ff9f80';
+        const bar = document.querySelector('.boot-bar span');
+        if (bar) bar.style.background = '#ff5a36';
+      };
+
+      window.addEventListener('error', (event) => {
+        if (event && event.message && !String(event.message).includes('Script error')) {
+          showFailure(String(event.message).slice(0, 160));
+        }
+      });
+      window.addEventListener('unhandledrejection', (event) => {
+        const reason = event && event.reason ? (event.reason.message || String(event.reason)) : 'Unhandled promise rejection';
+        showFailure(String(reason).slice(0, 160));
+      });
+
+      const engines = [
+        'https://cdn.jsdelivr.net/npm/playcanvas@2.22.1/build/playcanvas.min.js',
+        'https://code.playcanvas.com/playcanvas-stable.min.js',
+        'https://unpkg.com/playcanvas@2.22.1/build/playcanvas.min.js'
+      ];
+
+      const loadGame = () => {
+        if (!window.pc || !window.pc.Application) {
+          showFailure('3D engine loaded without the expected PlayCanvas API');
+          return;
+        }
+        copy.textContent = 'Renderer loaded · building Harbor Yard…';
+        const game = document.createElement('script');
+        game.src = 'src/game.js?v=20260911c';
+        game.onload = () => {
+          window.setTimeout(() => {
+            if (document.getElementById('boot')) {
+              showFailure('Renderer initialized but scene startup did not complete');
+            }
+          }, 5500);
+        };
+        game.onerror = () => showFailure('Could not load the game script');
+        document.body.appendChild(game);
+      };
+
+      const tryEngine = (index) => {
+        if (index >= engines.length) {
+          showFailure('Could not load the 3D engine. Check Safari content blockers or network access.');
+          return;
+        }
+        copy.textContent = `Loading 3D engine · source ${index + 1}/${engines.length}…`;
+        const script = document.createElement('script');
+        script.src = engines[index];
+        script.crossOrigin = 'anonymous';
+        script.onload = () => window.pc ? loadGame() : tryEngine(index + 1);
+        script.onerror = () => tryEngine(index + 1);
+        document.head.appendChild(script);
+      };
+
+      tryEngine(0);
+    })();
+  </script>
 </body>
 </html>
