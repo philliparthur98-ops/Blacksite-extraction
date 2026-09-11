@@ -20,6 +20,7 @@ const FRAGMENTS := {
 }
 
 static var cached_pack: PackedScene
+static var cached_pack_source: Node
 static var cached_keycard: PackedScene
 var authored_visual: Node3D
 var has_authored_asset: bool = false
@@ -42,8 +43,6 @@ func _build_visual() -> void:
         add_child(authored_visual)
         _configure_meshes(authored_visual)
     else:
-        # Never return to glowing debug cubes. A restrained hard-case fallback is
-        # still physically grounded and materially plausible if an asset is absent.
         authored_visual = _hard_case_fallback()
         add_child(authored_visual)
 
@@ -55,44 +54,39 @@ func _build_visual() -> void:
         light.position = Vector3(0,0.28,0)
         add_child(light)
 
-func _load_cached(path: String, keycard: bool = false) -> PackedScene:
-    if keycard:
-        if cached_keycard == null and ResourceLoader.exists(path):
-            var r = load(path)
-            if r is PackedScene: cached_keycard = r
-        return cached_keycard
-    if cached_pack == null and ResourceLoader.exists(path):
-        var r = load(path)
-        if r is PackedScene: cached_pack = r
-    return cached_pack
+func _load_pack_source() -> Node:
+    if cached_pack_source != null and is_instance_valid(cached_pack_source):
+        return cached_pack_source
+    if cached_pack == null and ResourceLoader.exists(PACK_SCENE):
+        var resource = load(PACK_SCENE)
+        if resource is PackedScene: cached_pack = resource
+    if cached_pack != null:
+        cached_pack_source = cached_pack.instantiate()
+    return cached_pack_source
 
 func _instantiate_authored_item() -> Node3D:
     if item_id == "badge":
-        var key_scene := _load_cached(KEYCARD_SCENE,true)
-        if key_scene:
-            return key_scene.instantiate() as Node3D
+        if cached_keycard == null and ResourceLoader.exists(KEYCARD_SCENE):
+            var key_resource = load(KEYCARD_SCENE)
+            if key_resource is PackedScene: cached_keycard = key_resource
+        if cached_keycard != null:
+            return cached_keycard.instantiate() as Node3D
         return null
-    var pack := _load_cached(PACK_SCENE,false)
-    if pack == null:
-        return null
-    var source := pack.instantiate()
+    var source := _load_pack_source()
+    if source == null: return null
     var fragment := str(FRAGMENTS.get(item_id,"supply crate"))
     var found := _find_named_node(source,fragment)
-    var result: Node3D = null
     if found is Node3D:
-        result = (found as Node3D).duplicate(Node.DUPLICATE_USE_INSTANTIATION) as Node3D
-    source.queue_free()
-    return result
+        return (found as Node3D).duplicate(Node.DUPLICATE_USE_INSTANTIATION) as Node3D
+    return null
 
 func _find_named_node(node: Node, fragment: String) -> Node:
     var needle := fragment.to_lower().replace(" ","")
     var candidate := str(node.name).to_lower().replace("_","").replace("-","").replace(" ","")
-    if candidate.contains(needle):
-        return node
+    if candidate.contains(needle): return node
     for child in node.get_children():
         var result := _find_named_node(child,fragment)
-        if result != null:
-            return result
+        if result != null: return result
     return null
 
 func _scale_for_item(id: String) -> Vector3:
@@ -106,33 +100,22 @@ func _scale_for_item(id: String) -> Vector3:
 
 func _configure_meshes(node: Node) -> void:
     if node is MeshInstance3D:
-        var mi := node as MeshInstance3D
-        mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
-    for child in node.get_children():
-        _configure_meshes(child)
+        (node as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+    for child in node.get_children(): _configure_meshes(child)
 
 func _hard_case_fallback() -> Node3D:
     var root := Node3D.new()
     var body := MeshInstance3D.new()
-    var mesh := BoxMesh.new()
-    mesh.size = Vector3(0.48,0.18,0.34)
-    body.mesh = mesh
-    body.position.y = 0.12
-    var mat := StandardMaterial3D.new()
-    mat.albedo_color = Color("252b29")
-    mat.metallic = 0.18
-    mat.roughness = 0.72
-    body.material_override = mat
-    root.add_child(body)
+    var mesh := BoxMesh.new(); mesh.size = Vector3(0.48,0.18,0.34); body.mesh = mesh; body.position.y = 0.12
+    var mat := StandardMaterial3D.new(); mat.albedo_color=Color("252b29"); mat.metallic=0.18; mat.roughness=0.72
+    body.material_override=mat; root.add_child(body)
     return root
 
 func _process(_delta: float) -> void:
-    # World loot sits in the world. No arcade spinning, bobbing or rarity pedestal.
     position.y = base_y
 
 func get_interaction_prompt() -> String:
-    if item_id == "quest_drive":
-        return "HOLD F // SECURE BLACK TIDE DRIVE"
+    if item_id == "quest_drive": return "HOLD F // SECURE BLACK TIDE DRIVE"
     return "F // TAKE %s  •  $%s" % [str(data.get("name",item_id)).to_upper(),str(data.get("value",0))]
 
 func smoke_has_authored_asset() -> bool:
