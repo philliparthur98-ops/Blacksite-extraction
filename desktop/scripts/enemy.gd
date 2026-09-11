@@ -39,7 +39,7 @@ func _ready() -> void:
     collision_mask = 1
     add_to_group("blacksite_enemy")
     patrol_origin = global_position
-    patrol_target = patrol_origin + Vector3(randf_range(-5.0,5.0),0.0,randf_range(-5.0,5.0))
+    patrol_target = patrol_origin+Vector3(randf_range(-5.0,5.0),0.0,randf_range(-5.0,5.0))
     match archetype:
         "guard":
             health = 125.0
@@ -119,35 +119,26 @@ func _build_character() -> void:
             character_model = (packed as PackedScene).instantiate()
             character_model.name = "RiggedOperator"
             character_model.rotation_degrees = Vector3(0,180,0)
-            character_model.position = Vector3(0,0,0)
+            character_model.position = Vector3.ZERO
             character_model.scale = Vector3.ONE
             body_root.add_child(character_model)
             character_anim = _find_animation_player(character_model)
             uses_character_asset = true
-            _tint_character_for_archetype(character_model)
+            _configure_imported_meshes(character_model)
+            _add_archetype_gear()
             _play_character_anim("idle",1.0,0.0)
             return
 
     uses_character_asset = false
     _build_fallback_operator()
 
-func _tint_character_for_archetype(root: Node) -> void:
-    var tint := Color("dce4d8")
-    if archetype == "raider":
-        tint = Color("ccd2d7")
-    elif archetype == "guard":
-        tint = Color("d7dfd0")
-    _apply_instance_tint(root,tint)
-
-func _apply_instance_tint(node: Node, tint: Color) -> void:
+func _configure_imported_meshes(node: Node) -> void:
     if node is MeshInstance3D:
         var mesh_node := node as MeshInstance3D
         mesh_node.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
-        if archetype == "raider":
-            mesh_node.visibility_range_end = 155.0
-        mesh_node.modulate = tint
+        mesh_node.visibility_range_end = 165.0
     for child in node.get_children():
-        _apply_instance_tint(child,tint)
+        _configure_imported_meshes(child)
 
 func _mesh_part(parent: Node3D, mesh: Mesh, pos: Vector3, material: Material, rot: Vector3 = Vector3.ZERO) -> Node3D:
     var node := Node3D.new()
@@ -180,6 +171,22 @@ func _sphere_part(parent: Node3D, pos: Vector3, radius: float, material: Materia
     node.scale = scale_
     return node
 
+func _add_archetype_gear() -> void:
+    var gear_color := Color("262c29")
+    if archetype == "guard": gear_color = Color("38433a")
+    if archetype == "raider": gear_color = Color("181c1e")
+    var gear := _mat(gear_color,0.05,0.83)
+    _box_part(body_root,Vector3(0,1.35,-0.18),Vector3(0.46,0.46,0.12),gear)
+    _box_part(body_root,Vector3(0,1.33,0.18),Vector3(0.40,0.42,0.15),gear)
+    if archetype != "scav":
+        var helmet := SphereMesh.new()
+        helmet.radius = 0.235
+        helmet.height = 0.30
+        var helmet_node := _mesh_part(body_root,helmet,Vector3(0,1.82,0),gear)
+        helmet_node.scale = Vector3(1.0,0.72,1.0)
+    if archetype == "raider":
+        _box_part(body_root,Vector3(0,1.38,0.29),Vector3(0.36,0.42,0.18),gear)
+
 func _build_fallback_operator() -> void:
     var cloth := _mat(Color("3d4941"),0.0,0.92)
     var cloth_dark := _mat(Color("242b27"),0.0,0.94)
@@ -198,7 +205,8 @@ func _build_fallback_operator() -> void:
         _capsule_part(body_root,Vector3(-0.38,1.37,-0.05),0.09,0.63,cloth,Vector3(15,0,-8)),
         _capsule_part(body_root,Vector3(0.38,1.37,-0.05),0.09,0.63,cloth,Vector3(15,0,8))
     ]
-    for x in [-0.19,0.0,0.19]:
+    for x_value in [-0.19,0.0,0.19]:
+        var x: float = float(x_value)
         _box_part(body_root,Vector3(x,1.25,-0.36),Vector3(0.14,0.22,0.09),cloth_dark)
 
 func _build_weapon() -> void:
