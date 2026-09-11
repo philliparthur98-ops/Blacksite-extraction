@@ -45,7 +45,7 @@ jobs:
         run: |
           set -euo pipefail
           RAW="https://raw.githubusercontent.com/petroulacl/fps-asset-kit/main"
-          mkdir -p desktop/assets/{textures,weapons,characters,audio}
+          mkdir -p desktop/assets/{textures,weapons,characters,audio} /tmp/blacksite_glb
           grab(){ echo "Fetching $2"; curl -LfsS --retry 4 --retry-delay 2 "$1" -o "$2"; }
 
           grab "$RAW/textures/Asphalt023S/Asphalt023S_2K-JPG_Color.jpg" desktop/assets/textures/asphalt_color.jpg
@@ -61,13 +61,16 @@ jobs:
           grab "$RAW/textures/Metal063/Metal063_2K-JPG_NormalGL.jpg" desktop/assets/textures/metal_normal.jpg
           grab "$RAW/textures/Metal063/Metal063_2K-JPG_Roughness.jpg" desktop/assets/textures/metal_rough.jpg
 
-          # First-person-grade modern CC0 firearms, with rigid magazine/charging/slide animation clips.
-          grab "https://cdn.3dassets.dev/assets/33096/v1/model.glb" desktop/assets/weapons/VXR_Carbine.glb
-          grab "https://cdn.3dassets.dev/assets/33458/v1/model.glb" desktop/assets/weapons/P9_Duty.glb
-          grab "https://cdn.3dassets.dev/assets/33101/v1/model.glb" desktop/assets/weapons/SG12_Breacher.glb
-
-          # Rigged MakeHuman-based CC0 character: 74-joint skeleton with idle/walk/run/grasp clips.
-          grab "https://cdn.3dassets.dev/assets/32901/v1/model.glb" desktop/assets/characters/GorgeholdScout.glb
+          # The source GLBs use KHR_mesh_quantization. Godot 4 currently rejects that extension,
+          # so dequantize to ordinary float attributes before placing assets in the project tree.
+          grab "https://cdn.3dassets.dev/assets/33096/v1/model.glb" /tmp/blacksite_glb/vxr.glb
+          grab "https://cdn.3dassets.dev/assets/33458/v1/model.glb" /tmp/blacksite_glb/p9.glb
+          grab "https://cdn.3dassets.dev/assets/33101/v1/model.glb" /tmp/blacksite_glb/sg12.glb
+          grab "https://cdn.3dassets.dev/assets/32901/v1/model.glb" /tmp/blacksite_glb/scout.glb
+          npx --yes @gltf-transform/cli dequantize /tmp/blacksite_glb/vxr.glb desktop/assets/weapons/VXR_Carbine.glb
+          npx --yes @gltf-transform/cli dequantize /tmp/blacksite_glb/p9.glb desktop/assets/weapons/P9_Duty.glb
+          npx --yes @gltf-transform/cli dequantize /tmp/blacksite_glb/sg12.glb desktop/assets/weapons/SG12_Breacher.glb
+          npx --yes @gltf-transform/cli dequantize /tmp/blacksite_glb/scout.glb desktop/assets/characters/GorgeholdScout.glb
 
           python3 - <<'PY'
           import math, random, struct, wave
@@ -127,7 +130,7 @@ jobs:
         run: |
           set -o pipefail
           ./godot --headless --editor --path desktop --quit-after 40 2>&1 | tee godot-validate.log
-          if grep -E "SCRIPT ERROR|Parse Error|Failed loading resource|Failed to load script|Cannot get class|Not a WAV file" godot-validate.log; then
+          if grep -E "SCRIPT ERROR|Parse Error|Failed loading resource|Failed to load script|Cannot get class|Not a WAV file|Error importing|Can't import file" godot-validate.log; then
             echo "Godot reported parser/resource errors."
             exit 1
           fi
