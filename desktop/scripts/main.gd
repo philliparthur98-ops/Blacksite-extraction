@@ -129,6 +129,17 @@ func _prepare_impact_material() -> void:
     impact_material.albedo_color = Color("1b1d1e")
     impact_material.roughness = 0.9
 
+# Presentation/content factories. Alpha builds override these rather than
+# duplicating the combat/extraction loop, which keeps accepted regressions intact.
+func _create_world_builder() -> WorldBuilder:
+    return WorldBuilder.new()
+
+func _create_enemy() -> BlacksiteEnemy:
+    return BlacksiteEnemy.new()
+
+func _create_loot_pickup() -> LootPickup:
+    return LootPickup.new()
+
 func _start_raid() -> void:
     if raid_root and is_instance_valid(raid_root):
         raid_root.queue_free()
@@ -138,7 +149,7 @@ func _start_raid() -> void:
     raid_root.name = "RaidRoot"
     add_child(raid_root)
 
-    world = WorldBuilder.new()
+    world = _create_world_builder()
     raid_root.add_child(world)
     var layout: Dictionary = world.build()
     quest_position = layout.get("quest_pos",Vector3(-2,1,-32))
@@ -164,7 +175,7 @@ func _start_raid() -> void:
 
     var enemy_defs: Array = layout.get("enemy_spawns",[])
     for definition in enemy_defs:
-        var enemy := BlacksiteEnemy.new()
+        var enemy := _create_enemy()
         enemy.configure(player,str(definition.get("type","scav")))
         enemy.position = definition.get("pos",Vector3.ZERO)
         enemy.killed.connect(_on_enemy_killed)
@@ -190,7 +201,7 @@ func _start_raid() -> void:
 func _spawn_loot(id: String, pos: Vector3) -> void:
     if raid_root == null:
         return
-    var loot := LootPickup.new()
+    var loot := _create_loot_pickup()
     loot.position = pos
     loot.configure(id)
     loot.picked.connect(_on_loot_picked)
