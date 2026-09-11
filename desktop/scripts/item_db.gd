@@ -2,9 +2,9 @@ class_name ItemDB
 extends RefCounted
 
 const ITEMS := {
-    "m4": {"name":"M4A1 SOPMOD","type":"PRIMARY","kind":"weapon","rarity":"rare","value":2450,"weight":3.4,"caliber":"5.56×45","mag":30,"reserve":120,"damage":34.0,"rpm":690.0,"automatic":true,"asset":"res://assets/weapons/Rifle_Assault_West.glb"},
-    "g17": {"name":"G17 Duty","type":"SIDEARM","kind":"weapon","rarity":"common","value":680,"weight":0.7,"caliber":"9×19","mag":17,"reserve":68,"damage":25.0,"rpm":360.0,"automatic":false,"asset":"res://assets/weapons/Pistol_Full_West.glb"},
-    "m870": {"name":"M870 Breacher","type":"PRIMARY","kind":"weapon","rarity":"uncommon","value":1320,"weight":3.1,"caliber":"12 GA","mag":6,"reserve":30,"damage":18.0,"rpm":72.0,"automatic":false,"pellets":8,"asset":"res://assets/weapons/Shotgun_Pump_West.glb"},
+    "m4": {"name":"VXR-556 SOPMOD","type":"PRIMARY","kind":"weapon","rarity":"rare","value":2450,"weight":3.4,"caliber":"5.56×45","mag":30,"reserve":120,"damage":34.0,"rpm":690.0,"automatic":true,"asset":"res://assets/weapons/VXR_Carbine.glb"},
+    "g17": {"name":"P9 Duty","type":"SIDEARM","kind":"weapon","rarity":"common","value":680,"weight":0.7,"caliber":"9×19","mag":17,"reserve":68,"damage":25.0,"rpm":360.0,"automatic":false,"asset":"res://assets/weapons/P9_Duty.glb"},
+    "m870": {"name":"SG-12 Breacher","type":"PRIMARY","kind":"weapon","rarity":"uncommon","value":1320,"weight":3.1,"caliber":"12 GA","mag":6,"reserve":30,"damage":18.0,"rpm":72.0,"automatic":false,"pellets":8,"asset":"res://assets/weapons/SG12_Breacher.glb"},
     "plate": {"name":"Aegis Ceramic Plate","type":"ARMOR","kind":"armor","rarity":"uncommon","value":1780,"weight":4.2,"condition":78},
     "carrier": {"name":"Aegis Plate Carrier","type":"RIG","kind":"armor","rarity":"uncommon","value":2290,"weight":5.8,"condition":84},
     "ifak": {"name":"IFAK Trauma Kit","type":"MEDICAL","kind":"med","rarity":"uncommon","value":420,"weight":0.45,"uses":4},
