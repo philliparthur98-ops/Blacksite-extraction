@@ -49,7 +49,14 @@ func _run_raid_smoke_test() -> void:
     if not ResourceLoader.exists("res://assets/weapons/P9_Duty.glb"): failures.append("p9_asset")
     if not ResourceLoader.exists("res://assets/weapons/SG12_Breacher.glb"): failures.append("sg12_asset")
     if not ResourceLoader.exists("res://assets/characters/GorgeholdScout.glb"): failures.append("character_asset")
+    if not ResourceLoader.exists("res://assets/characters/WRAD_Arms.glb"): failures.append("fp_arms_asset")
     if player != null and player.viewmodel == null: failures.append("player_viewmodel")
+
+    var fp_rig_ok := false
+    if player != null and player.has_method("has_authored_first_person_rig"):
+        fp_rig_ok = bool(player.call("has_authored_first_person_rig"))
+    if not fp_rig_ok:
+        failures.append("authored_fp_rig")
 
     var ammo_persistence_ok := false
     if player != null and player.has_method("smoke_ammo_persistence_regression"):
@@ -71,7 +78,7 @@ func _run_raid_smoke_test() -> void:
     if rigged_count < 5: failures.append("rigged_enemies=%d" % rigged_count)
 
     if failures.is_empty():
-        print("BLACKSITE_SMOKE_RAID_OK enemies=%d rigged=%d loot=%d objective=%s viewmodel=%s ammo_persistence=PASS extract_lock=PASS" % [enemies_alive,rigged_count,pickups.size(),str(quest_position),str(player.viewmodel.name)])
+        print("BLACKSITE_SMOKE_RAID_OK enemies=%d rigged=%d loot=%d objective=%s viewmodel=%s fp_rig=PASS ammo_persistence=PASS extract_lock=PASS" % [enemies_alive,rigged_count,pickups.size(),str(quest_position),str(player.viewmodel.name)])
         get_tree().quit(0)
     else:
         push_error("BLACKSITE_SMOKE_RAID_FAILED " + ",".join(failures))
