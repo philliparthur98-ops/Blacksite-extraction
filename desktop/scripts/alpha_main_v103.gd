@@ -1,5 +1,7 @@
 extends "res://scripts/alpha_main.gd"
 
+var recovery_loaner_active: bool = false
+
 func _create_world_builder() -> WorldBuilder:
     return WorldBuilderV103.new()
 
@@ -46,6 +48,66 @@ func _alpha_sell(id: String) -> void:
         value_text = (ui as BlacksiteAlphaUIV103)._format_int(value)
     _save_refresh("SOLD %s  +$%s" % [str(ItemDB.get_item(id).get("name",id)).to_upper(),value_text])
 
+func _resolve_raid_kit() -> Dictionary:
+    var stash: Array = profile.get("stash",[])
+    var loadout: Dictionary = profile.get("loadout",{})
+    var weapons: Array[String] = []
+
+    var primary := str(loadout.get("primary",""))
+    if primary in ["m4","m870"] and stash.has(primary):
+        weapons.append(primary)
+    var sidearm := str(loadout.get("sidearm",""))
+    if sidearm == "g17" and stash.has(sidearm):
+        weapons.append(sidearm)
+
+    var loaner := weapons.is_empty()
+    if loaner:
+        # Explicit recovery kit: one P9 only, no armor and no medical supply.
+        # It is intentionally not inserted into the persistent stash and is not
+        # eligible for sale, insurance or retention.
+        weapons.append("g17")
+
+    var armor := str(loadout.get("armor",""))
+    if armor == "" or not stash.has(armor) or str(ItemDB.get_item(armor).get("kind","")) != "armor":
+        armor = ""
+    var med := str(loadout.get("med",""))
+    if med == "" or not stash.has(med) or str(ItemDB.get_item(med).get("kind","")) != "med":
+        med = ""
+
+    return {"weapons":weapons,"armor":armor,"med":med,"loaner":loaner}
+
+func _apply_resolved_raid_kit() -> void:
+    if player == null or not is_instance_valid(player):
+        return
+    var kit := _resolve_raid_kit()
+    recovery_loaner_active = bool(kit.get("loaner",false))
+    var weapons: Array[String] = kit.get("weapons",[]) as Array[String]
+    player.weapon_ids = weapons
+    if player is BlacksitePlayerV102:
+        (player as BlacksitePlayerV102).weapon_runtime.clear()
+    player._load_weapon(0)
+
+    var armor_id := str(kit.get("armor",""))
+    match armor_id:
+        "carrier": player.armor = 60.0
+        "plate": player.armor = 45.0
+        _: player.armor = 0.0
+
+    var med_id := str(kit.get("med",""))
+    med_uses = 0
+    if med_id != "":
+        med_uses = int(ItemDB.get_item(med_id).get("uses",0)) + maxi(0,int(profile.get("hideout_level",1))-1)
+
+    if recovery_loaner_active and ui:
+        ui.toast("RECOVERY LOANER // P9 ONLY // NO ARMOR // NO MEDS",Color("efb469"))
+
+func _start_raid() -> void:
+    # The inherited alpha start creates the world and applies its legacy defaults.
+    # Before control returns to the player, replace those defaults with an
+    # authoritative inventory-backed kit (or the explicit recovery loaner).
+    await super._start_raid()
+    _apply_resolved_raid_kit()
+
 func _spawn_alpha_bonus_loot() -> void:
     if raid_root == null:
         return
@@ -83,18 +145,39 @@ func _smoke_cleanup() -> void:
     secondary_extract = null
     if ui != null and is_instance_valid(ui):
         ui.queue_free()
+    ui = null
     LootPickupV103.release_cached_assets()
-    # Give Godot several deferred-delete cycles before terminating the dummy renderer.
+    # Give deferred deletion and the dummy renderer multiple idle cycles.
     await get_tree().process_frame
     await get_tree().process_frame
     await get_tree().process_frame
     await get_tree().process_frame
+
+func _smoke_raid_loss_integrity() -> bool:
+    var before := profile.duplicate(true)
+    profile = ProfileStore.default_profile()
+    _ensure_alpha_profile()
+    profile["stash"] = ["m4","g17","carrier","ifak"]
+    profile["loadout"] = {"primary":"m4","sidearm":"g17","armor":"carrier","med":"ifak"}
+    profile["insurance_tokens"] = 0
+    _apply_raid_loss()
+    var stash_after: Array = profile.get("stash",[])
+    var kit := _resolve_raid_kit()
+    var weapons: Array = kit.get("weapons",[])
+    var ok := stash_after.is_empty() and bool(kit.get("loaner",false)) and weapons.size() == 1 and str(weapons[0]) == "g17" and str(kit.get("armor","")) == "" and str(kit.get("med","")) == ""
+    profile = before
+    return ok
 
 func _run_raid_smoke_test() -> void:
     await get_tree().process_frame
     _ensure_alpha_profile()
     var saved_profile := profile.duplicate(true)
     var failures: Array[String] = []
+
+    if not ProfileStore.smoke_save_recovery_regression():
+        failures.append("save_recovery")
+    if not _smoke_raid_loss_integrity():
+        failures.append("raid_loss_integrity")
 
     profile = ProfileStore.default_profile()
     _ensure_alpha_profile()
@@ -159,7 +242,7 @@ func _run_raid_smoke_test() -> void:
     var ui_ok := ui is BlacksiteAlphaUIV103 and (ui as BlacksiteAlphaUIV103).smoke_workspace_ok()
     if not ui_ok: failures.append("ui_workspace")
 
-    var smoke_line := "BLACKSITE_SMOKE_RAID_OK enemies=%d authored_enemies=%d enemy_variants=%d loot=%d authored_loot=%d world_extent=%.0fm world_scale=PASS fp_rig=PASS grip=PASS ammo_persistence=PASS extract_lock=PASS ui_v103=PASS" % [enemies_alive,authored_enemies,enemy_assets.size(),pickups.size(),authored_loot,(world as WorldBuilderV103).map_extent_m]
+    var smoke_line := "BLACKSITE_SMOKE_RAID_OK enemies=%d authored_enemies=%d enemy_variants=%d loot=%d authored_loot=%d world_extent=%.0fm world_scale=PASS fp_rig=PASS grip=PASS ammo_persistence=PASS extract_lock=PASS economy=PASS raid_loss=PASS save_recovery=PASS ui_v103=PASS" % [enemies_alive,authored_enemies,enemy_assets.size(),pickups.size(),authored_loot,(world as WorldBuilderV103).map_extent_m]
     profile = saved_profile
 
     if failures.is_empty():
