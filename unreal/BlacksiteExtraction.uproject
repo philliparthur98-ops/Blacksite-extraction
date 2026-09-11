@@ -5,7 +5,7 @@
   "Description": "BLACKSITE Extraction - Unreal Engine vertical slice",
   "Modules": [
     {
-      "Name": "BlacksiteExtraction",
+      "Name": "BlacksiteRuntime",
       "Type": "Runtime",
       "LoadingPhase": "Default"
     }
