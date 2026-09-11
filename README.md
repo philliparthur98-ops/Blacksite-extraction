@@ -1,25 +1,38 @@
 # BLACKSITE: Extraction
 
-Browser-first tactical extraction shooter built for iPhone Safari using PlayCanvas/WebGL2.
+BLACKSITE is an original tactical extraction FPS. The **active production implementation is now Unreal Engine 5.8**, with the project deliberately focused on one premium Harbor vertical slice before expanding content.
 
-## Current milestone
+## Active implementation
 
-The first vertical slice focuses on quality before breadth:
+Open `unreal/BlacksiteExtraction.uproject` in Unreal Engine 5.8.
 
-- one polished Harbor Yard raid
-- real WebGL 3D rendering
-- actual CC0 GLB weapon models
-- real surface textures
-- mobile-first movement, look, fire, ADS and reload controls
-- insertion grace period
-- simple enemy combat loop
-- stash/loadout presentation using rendered gear artwork
-- GitHub Pages deployment target for direct iPhone play
+Prototype 0.1 currently targets:
 
-## Run
+- responsive first-person movement and mouse look
+- a tactile VXR-11 rifle loop with ADS, recoil, reload staging, ammo state and dry fire
+- physical player and hostile shot traces so world cover matters
+- tactical enemy patrol / investigate / combat / search behavior
+- three enemy behavior profiles
+- hold-to-secure archive objective
+- timed, cancellable physical extraction checkpoint
+- tactical HUD and complete raid restart loop
+- one compact Harbor combat slice with deliberate cover and sightline composition
+- Lumen GI/reflections, Virtual Shadow Maps, TSR, dusk lighting, fog and industrial work lights
+- performance/readability as hard gates before content growth
 
-This repository is intended to be hosted as a static website. When GitHub Pages is enabled with **GitHub Actions** as the source, pushes to `main` deploy automatically.
+See `unreal/README.md` and `unreal/Docs/VERTICAL_SLICE.md` for controls, architecture and the current quality gate.
+
+## Scope lock
+
+Do not add a second map, additional weapon families, trader expansion, contract tiers, or a larger meta layer until the Unreal Harbor raid is materially premium in playability and presentation. The next priorities are a successful UE 5.8 editor build/playtest, authored industrial environment art, a rigged first-person arms/weapon set, stronger impact/damage feedback, coherent spatial audio, and 60+ fps profiling.
+
+## Previous prototypes
+
+- `desktop/` — Godot desktop implementation retained as a design/reference/fallback build.
+- root web files / `src/` — earlier browser prototype retained for historical reference and lightweight demonstrations.
+
+New gameplay and visual development should target `unreal/` unless the project direction explicitly changes again.
 
 ## Asset provenance
 
-External runtime art/audio is sourced from CC0/public-domain packs documented in `ASSET_PROVENANCE.md`. No Escape From Tarkov assets, maps, code, trademarks, or proprietary UI are included.
+Only original or appropriately licensed assets should enter the production build. Existing external prototype assets are documented in `ASSET_PROVENANCE.md`. No Escape From Tarkov/SPT proprietary code, maps, models, UI artwork, audio, or other protected game assets are included.
