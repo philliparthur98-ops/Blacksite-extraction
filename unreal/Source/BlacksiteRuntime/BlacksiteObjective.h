@@ -17,6 +17,7 @@ class BLACKSITERUNTIME_API ABlacksiteObjective : public AActor
 public:
     ABlacksiteObjective();
     void Interact(ABlacksitePlayerCharacter* Player);
+    bool IsSecured() const { return bSecured; }
 
 private:
     UPROPERTY(VisibleAnywhere)
