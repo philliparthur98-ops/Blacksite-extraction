@@ -151,7 +151,7 @@ func _scatter_authored_clutter() -> void:
     ]
     var index := 0
     for pos in positions:
-        var path := PROP_PATHS[index % PROP_PATHS.size()]
+        var path: String = str(PROP_PATHS[index % PROP_PATHS.size()])
         var prop := _scene_instance(path,pos,randf_range(-180.0,180.0),1.0,true)
         if prop:
             prop.name = "AuthoredClutter_%d" % index
