@@ -24,6 +24,30 @@ func _build_ui() -> void:
     aui.settings_requested.connect(_alpha_settings)
     ui.set_profile(profile)
 
+# Godot's percent formatter does not support Python-style comma grouping. Override
+# the inherited sell handler so every live v1.03 money message is runtime-safe.
+func _alpha_sell(id: String) -> void:
+    var stash: Array = profile.get("stash",[])
+    var idx := stash.find(id)
+    if idx < 0:
+        return
+    var loadout: Dictionary = profile.get("loadout",{})
+    var equipped_count := 0
+    for slot in loadout.keys():
+        if str(loadout[slot]) == id:
+            equipped_count += 1
+    if stash.count(id) <= equipped_count:
+        (ui as BlacksiteAlphaUI).alpha_status("ITEM EQUIPPED — CHANGE LOADOUT FIRST",Color("ef6d65"))
+        return
+    var value := int(float(ItemDB.get_item(id).get("value",0))*0.72)
+    stash.remove_at(idx)
+    profile["stash"] = stash
+    profile["cash"] = int(profile.get("cash",0))+value
+    var value_text := str(value)
+    if ui is BlacksiteAlphaUIV103:
+        value_text = (ui as BlacksiteAlphaUIV103)._format_int(value)
+    _save_refresh("SOLD %s  +$%s" % [str(ItemDB.get_item(id).get("name",id)).to_upper(),value_text])
+
 func _spawn_alpha_bonus_loot() -> void:
     if raid_root == null: return
     alpha_bonus_loot_spawned = 0
@@ -117,7 +141,6 @@ func _run_raid_smoke_test() -> void:
     var ui_ok := ui is BlacksiteAlphaUIV103 and (ui as BlacksiteAlphaUIV103).smoke_workspace_ok()
     if not ui_ok: failures.append("ui_workspace")
 
-    # Restore the profile object before quitting the test process.
     profile = saved_profile
     if failures.is_empty():
         print("BLACKSITE_SMOKE_RAID_OK enemies=%d authored_enemies=%d enemy_variants=%d loot=%d authored_loot=%d world_extent=%.0fm world_scale=PASS fp_rig=PASS grip=PASS ammo_persistence=PASS extract_lock=PASS ui_v103=PASS" % [enemies_alive,authored_enemies,enemy_assets.size(),pickups.size(),authored_loot,(world as WorldBuilderV103).map_extent_m])
