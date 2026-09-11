@@ -161,10 +161,11 @@ func _build_first_person_arms() -> void:
     _box_visual(arms_root,"RightPad",Vector3(0.23,-0.12,-0.02),Vector3(0.15,0.10,0.19),pad,Vector3(8,6,8))
     _capsule_visual(arms_root,"LeftGlove",Vector3(-0.10,-0.12,-0.38),0.075,0.20,glove,Vector3(85,4,-8))
     _capsule_visual(arms_root,"RightGlove",Vector3(0.11,-0.13,-0.31),0.076,0.20,glove,Vector3(86,-4,8))
-    for side in [-1.0,1.0]:
+    for side_value in [-1.0,1.0]:
+        var side: float = float(side_value)
         for finger in range(3):
-            var x := (0.10*side)+(float(finger)-1.0)*0.021
-            var z := -0.47 if side < 0.0 else -0.40
+            var x: float = (0.10*side)+(float(finger)-1.0)*0.021
+            var z: float = -0.47 if side < 0.0 else -0.40
             _capsule_visual(arms_root,"Finger_%s_%d" % ["L" if side < 0.0 else "R",finger],Vector3(x,-0.105,z),0.012,0.095,glove,Vector3(88,0,0))
 
 func _build_muzzle() -> void:
@@ -323,6 +324,8 @@ func _input(event: InputEvent) -> void:
 
     if event is InputEventMouseButton:
         if event.pressed and Input.mouse_mode == Input.MOUSE_MODE_VISIBLE:
+            if game and game.ui and game.ui.raid_inventory and game.ui.raid_inventory.visible:
+                return
             Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
             get_viewport().set_input_as_handled()
             return
