@@ -49,6 +49,7 @@ required_files = [
     "BlacksiteGameMode.cpp",
     "BlacksiteAudio.h",
     "BlacksiteAudio.cpp",
+    "BlacksiteAutomationTests.cpp",
 ]
 for name in required_files:
     require((SRC / name).exists(), f"missing_runtime_file:{name}")
@@ -58,6 +59,8 @@ player = text(SRC / "BlacksitePlayerCharacter.cpp")
 enemy = text(SRC / "BlacksiteEnemyCharacter.cpp")
 extraction_h = text(SRC / "BlacksiteExtractionZone.h")
 world = text(SRC / "BlacksiteGameMode.cpp")
+automation = text(SRC / "BlacksiteAutomationTests.cpp")
+build_proof = text(ROOT / ".github" / "workflows" / "unreal-ue58-build.yml")
 
 require("SetSampleRate(SampleRate, false)" in audio, "ue58_sample_rate_signature_regressed")
 require("QueueAudio(" in audio, "procedural_audio_queue_missing")
@@ -71,6 +74,18 @@ require("InteractionProgress = 0.0f" in player, "interaction_cancel_reset_missin
 require("BuildHarbor();" in world, "harbor_build_missing")
 require("SpawnCombatants();" in world, "enemy_spawn_missing")
 require("SetFogDensity" in world and "APostProcessVolume" in world, "visual_atmosphere_missing")
+
+# The source-sanity job is not compile proof. Require a separate UE-native gate whose
+# commands can only succeed on a machine with a licensed UE 5.8 installation.
+require("runs-on: [self-hosted, Windows, X64, unreal-5.8]" in build_proof, "ue58_runner_gate_missing")
+require("Build.bat" in build_proof and "BlacksiteExtractionEditor Win64 Development" in build_proof,
+        "ubt_compile_gate_missing")
+require("Automation RunTests Blacksite.Runtime" in build_proof, "ue_automation_gate_missing")
+require("RunUAT.bat" in build_proof and "BuildCookRun" in build_proof, "package_gate_missing")
+require("Packaged executable launch smoke" in build_proof, "packaged_launch_gate_missing")
+require("IMPLEMENT_SIMPLE_AUTOMATION_TEST" in automation, "runtime_automation_tests_missing")
+require("Blacksite.Runtime.ClassContract" in automation, "runtime_class_contract_test_missing")
+require("Blacksite.Runtime.ModuleOwnership" in automation, "runtime_module_ownership_test_missing")
 
 # Active runtime must use the UE light-component signature with explicit color-space bool.
 for source_path in SRC.glob("*.cpp"):
@@ -93,4 +108,4 @@ if failures:
     sys.exit(1)
 
 print("BLACKSITE_UNREAL_SOURCE_CONTRACT_OK")
-print("engine=5.8 module=BlacksiteRuntime physical_fire=PASS pathing=PASS extraction_hold=PASS visuals=PASS")
+print("engine=5.8 module=BlacksiteRuntime physical_fire=PASS pathing=PASS extraction_hold=PASS visuals=PASS ue_build_gate=DEFINED")
