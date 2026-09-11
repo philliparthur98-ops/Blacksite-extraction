@@ -1,0 +1,76 @@
+name: Unreal UE5.8 Build Proof
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'unreal/**'
+      - '.github/workflows/unreal-ue58-build.yml'
+
+# Epic does not license UE binaries on GitHub-hosted runners. This job intentionally
+# targets a Windows runner with UE 5.8 installed and UE_ROOT configured.
+jobs:
+  ue58-proof:
+    runs-on: [self-hosted, Windows, X64, unreal-5.8]
+    timeout-minutes: 60
+    env:
+      PROJECT: ${{ github.workspace }}\unreal\BlacksiteExtraction.uproject
+      ARCHIVE: ${{ github.workspace }}\artifacts\BlacksiteExtraction-Win64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify Unreal 5.8 installation
+        shell: pwsh
+        run: |
+          if (-not $env:UE_ROOT) { throw 'UE_ROOT must point to an Unreal Engine 5.8 installation.' }
+          $build = Join-Path $env:UE_ROOT 'Engine\Build\BatchFiles\Build.bat'
+          $editor = Join-Path $env:UE_ROOT 'Engine\Binaries\Win64\UnrealEditor-Cmd.exe'
+          $uat = Join-Path $env:UE_ROOT 'Engine\Build\BatchFiles\RunUAT.bat'
+          if (-not (Test-Path $build)) { throw "Missing Build.bat at $build" }
+          if (-not (Test-Path $editor)) { throw "Missing UnrealEditor-Cmd.exe at $editor" }
+          if (-not (Test-Path $uat)) { throw "Missing RunUAT.bat at $uat" }
+          & $editor -Version
+
+      - name: Compile editor target with UnrealBuildTool
+        shell: pwsh
+        run: |
+          $build = Join-Path $env:UE_ROOT 'Engine\Build\BatchFiles\Build.bat'
+          & $build BlacksiteExtractionEditor Win64 Development -Project="$env:PROJECT" -WaitMutex -NoHotReloadFromIDE
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Run BLACKSITE runtime automation tests
+        shell: pwsh
+        run: |
+          $editor = Join-Path $env:UE_ROOT 'Engine\Binaries\Win64\UnrealEditor-Cmd.exe'
+          & $editor "$env:PROJECT" -unattended -nop4 -NullRHI -NoSound -ExecCmds="Automation RunTests Blacksite.Runtime;Quit" -TestExit="Automation Test Queue Empty" -log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Package Win64 Development build
+        shell: pwsh
+        run: |
+          $uat = Join-Path $env:UE_ROOT 'Engine\Build\BatchFiles\RunUAT.bat'
+          New-Item -ItemType Directory -Force -Path $env:ARCHIVE | Out-Null
+          & $uat BuildCookRun -project="$env:PROJECT" -noP4 -platform=Win64 -clientconfig=Development -build -cook -stage -pak -archive -archivedirectory="$env:ARCHIVE" -utf8output
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Packaged executable launch smoke
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem -Path $env:ARCHIVE -Filter '*.exe' -Recurse | Where-Object { $_.Name -like '*BlacksiteExtraction*' } | Select-Object -First 1
+          if (-not $exe) { throw 'Packaged BLACKSITE executable not found.' }
+          $p = Start-Process -FilePath $exe.FullName -ArgumentList '-unattended','-nullrhi','-nosound','-ExecCmds=quit' -PassThru
+          if (-not $p.WaitForExit(30000)) {
+            $p.Kill()
+            throw 'Packaged executable did not complete launch smoke within 30 seconds.'
+          }
+          if ($p.ExitCode -ne 0) { throw "Packaged launch smoke exited $($p.ExitCode)." }
+
+      - name: Upload packaged proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: BLACKSITE-Unreal-UE58-Win64-${{ github.sha }}
+          path: artifacts/BlacksiteExtraction-Win64
+          if-no-files-found: error
+          retention-days: 14
