@@ -68,13 +68,40 @@ jobs:
           grab "$RAW/weapons/flat_guns_west/Flat%20Guns%20West/GLB/Pistol_Full_West.glb" desktop/assets/weapons/Pistol_Full_West.glb
           grab "$RAW/weapons/flat_guns_west/Flat%20Guns%20West/GLB/Shotgun_Pump_West.glb" desktop/assets/weapons/Shotgun_Pump_West.glb
 
-          grab "$RAW/sfx/gunshots/game_gunshot.wav" desktop/assets/audio/rifle.wav
-          grab "$RAW/sfx/gunshots/sniper_shot.wav" desktop/assets/audio/shotgun.wav
+          python3 - <<'PY'
+          import math, random, struct, wave
+          random.seed(7407)
+          RATE=48000
+          def gunshot(path, duration, crack, thump, decay, echo):
+              n=int(RATE*duration); samples=[]
+              delay=int(RATE*0.055); echo_buf=[0.0]*n
+              for i in range(n):
+                  t=i/RATE
+                  env=math.exp(-t*decay)
+                  transient=(random.uniform(-1,1)*crack)*math.exp(-t*78.0)
+                  low=math.sin(2*math.pi*(82+35*math.exp(-t*18))*t)*thump*math.exp(-t*12.0)
+                  mid=math.sin(2*math.pi*210*t)*0.18*env
+                  tail=random.uniform(-1,1)*0.16*env
+                  s=transient+low+mid+tail
+                  if i>=delay:s+=echo_buf[i-delay]*echo
+                  s=max(-1.0,min(1.0,s));echo_buf[i]=s;samples.append(int(s*30000))
+              with wave.open(path,'wb') as w:
+                  w.setnchannels(1);w.setsampwidth(2);w.setframerate(RATE)
+                  w.writeframes(b''.join(struct.pack('<h',x) for x in samples))
+          gunshot('desktop/assets/audio/rifle.wav',0.52,1.00,0.72,8.5,0.22)
+          gunshot('desktop/assets/audio/shotgun.wav',0.72,1.00,1.00,6.0,0.28)
+          PY
+
+          python3 - <<'PY'
+          for p in ['desktop/assets/audio/rifle.wav','desktop/assets/audio/shotgun.wav']:
+              with open(p,'rb') as f: assert f.read(4)==b'RIFF', p
+          PY
 
           cat > desktop/assets/THIRD_PARTY_ASSETS.txt <<'EOF'
-          BLACKSITE: Extraction runtime art/audio uses assets from:
+          BLACKSITE: Extraction runtime 3D models and PBR materials use assets from:
           https://github.com/petroulacl/fps-asset-kit
-          Upstream pack identifies these FPS assets/materials/sounds as CC0/public-domain.
+          Upstream pack identifies these assets as CC0/public-domain.
+          Firearm audio in this build is original procedurally generated audio.
           BLACKSITE code, map layout, story, UI and game design are original.
           EOF
 
@@ -83,8 +110,8 @@ jobs:
         run: |
           set -o pipefail
           ./godot --headless --editor --path desktop --quit-after 25 2>&1 | tee godot-validate.log
-          if grep -E "SCRIPT ERROR|Parse Error|Failed to load script|Cannot get class" godot-validate.log; then
-            echo "Godot reported script/parser errors."
+          if grep -E "SCRIPT ERROR|Parse Error|Failed loading resource|Failed to load script|Cannot get class|Not a WAV file" godot-validate.log; then
+            echo "Godot reported parser/resource errors."
             exit 1
           fi
           test -d desktop/.godot
@@ -111,6 +138,7 @@ jobs:
           Ctrl       Crouch
           R          Reload
           F          Interact / loot / extract
+          H          Use medical treatment
           1 / 2 / 3  Primary / sidearm / shotgun
           Tab        Field inventory
           Esc        Release mouse cursor
