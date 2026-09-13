@@ -1,0 +1,17 @@
+{
+  "name": "Arcane Rift",
+  "short_name": "Arcane Rift",
+  "description": "A touch-first side-scrolling action RPG with magic, particle effects, leveling, upgrades, and a boss battle.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#050812",
+  "theme_color": "#070b18",
+  "orientation": "landscape",
+  "categories": ["games"],
+  "icons": [
+    {"src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any"},
+    {"src": "./icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable"}
+  ]
+}
