@@ -1,0 +1,11 @@
+{
+  "name":"Starlight Nomad",
+  "short_name":"Nomad",
+  "start_url":"./",
+  "scope":"./",
+  "display":"standalone",
+  "orientation":"any",
+  "background_color":"#02040b",
+  "theme_color":"#050914",
+  "description":"A mobile 3D procedural space exploration game."
+}
