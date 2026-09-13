@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<title>Arcane Rift</title>
+<meta name="theme-color" content="#070b18" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="Arcane Rift" />
+<meta name="format-detection" content="telephone=no" />
+<link rel="manifest" href="./manifest.webmanifest" />
+<link rel="icon" href="./icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="./icon.svg" />
+<link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game" aria-label="Arcane Rift side scrolling action RPG"></canvas>
+  <div id="hud">
+    <div class="topbar">
+      <div class="cluster">
+        <div class="pill stat">
+          <div class="row"><span class="label">HP</span><span id="hpText">100 / 100</span></div><div class="bar"><div id="hpFill" class="fill"></div></div>
+          <div class="row" style="margin-top:6px"><span class="label">MANA</span><span id="manaText">100 / 100</span></div><div class="bar"><div id="manaFill" class="fill"></div></div>
+          <div class="row" style="margin-top:6px"><span class="label">LV <span id="levelText">1</span></span><span id="xpText">0 / 100 XP</span></div><div class="bar"><div id="xpFill" class="fill"></div></div>
+        </div>
+        <div class="pill"><div class="label">✦ <span id="powerText">18</span></div><div class="small">spell power</div></div>
+      </div>
+      <div class="cluster"><div id="quest" class="pill"><strong id="questTitle">Reach the Rift Gate</strong><span id="questText" class="small">Defeat corrupted creatures and grow stronger.</span><div id="progressMini"><i id="progressFill"></i></div></div><button id="pauseBtn" class="hudBtn" type="button" aria-label="Pause game">Ⅱ</button></div>
+    </div>
+  </div>
+  <div id="controls">
+    <div class="pad"><button class="touch" data-act="jump" aria-label="Jump"><span class="glyph">↑</span><span class="skillName">Jump</span></button><div class="padrow"><button class="touch" data-act="left" aria-label="Move left"><span class="glyph">←</span></button><button class="touch" data-act="right" aria-label="Move right"><span class="glyph">→</span></button></div></div>
+    <div class="actions"><button class="touch" id="dashBtn" data-act="dash" aria-label="Dash"><span class="cdShade"></span><span class="glyph">⚡</span><span class="skillName">Dash</span></button><button class="touch" id="castBtn" data-act="cast" aria-label="Arcane bolt"><span class="glyph">✦</span><span class="skillName">Bolt</span></button><button class="touch" id="novaBtn" data-act="nova" aria-label="Arcane nova"><span class="cdShade"></span><span class="glyph">☼</span><span class="skillName">Nova</span></button></div>
+  </div>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <div id="upgrade" class="hidden">
+    <div class="panel upgradePanel"><h2>Level Up</h2><p>Choose one permanent upgrade for this run.</p><div id="upgradeCards" class="cards"></div></div>
+  </div>
+  <div id="overlay">
+    <div class="panel">
+      <h1 class="title">ARCANE<br>RIFT</h1>
+      <p class="subtitle">A touch-first side-scrolling action RPG built for iPhone. Fight through the Shattered Vale, master arcane magic, level up, and defeat the Rift Warden.</p>
+      <div class="meta"><span class="tag">Magic combat</span><span class="tag">Particle effects</span><span class="tag">XP + upgrades</span><span class="tag">Boss fight</span><span class="tag">One complete level</span></div>
+      <button id="startBtn" class="primary">Enter the Shattered Vale</button>
+      <button id="installBtn" class="secondary" type="button">＋ Install on iPhone Home Screen</button>
+      <div id="runStats">Best run: not yet recorded</div>
+      <div class="help">iPhone: play in landscape. Left side = movement/jump. Right side = dash, spell, and Arcane Nova. Desktop: A/D, W/Space, J, K, Shift.</div>
+    </div>
+  </div>
+  <div id="installSheet" class="hidden"><div class="sheetCard"><div class="appBadge">✦ ARCANE RIFT · INSTALL</div><h2>Put the game on your Home Screen</h2><p>After this one-time setup, Arcane Rift launches full-screen like an app and keeps its core files cached for offline play.</p><ol class="steps"><li>Tap the <strong>Share</strong> button in Safari.</li><li>Choose <strong>Add to Home Screen</strong>.</li><li>Tap <strong>Add</strong>, then launch Arcane Rift from its icon.</li></ol><button id="installDone" class="primary" type="button">Got it</button></div></div>
+  <div id="pauseSheet" class="hidden"><div class="sheetCard"><div class="appBadge">Ⅱ PAUSED</div><h2>The Rift can wait.</h2><p>Your current run is paused.</p><button id="resumeBtn" class="primary" type="button">Resume</button><button id="restartBtn" class="secondary" type="button">Restart Run</button></div></div>
+  <div id="rotate"><div><div style="font-size:52px">↻</div><h2>Rotate your iPhone</h2><p>Arcane Rift is designed for landscape play.</p></div></div>
+</div>
+<script src="./game-core.js"></script>
+<script src="./game-render.js"></script>
+</body>
+</html>
